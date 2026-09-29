@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TA Hub - Synthetic Demo</title><script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme =
+      param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<link rel="stylesheet" href="demo-theme.css"><link rel="stylesheet" href="demo-ui.css"></head>
+<body class="mock-page" data-demo-view="ta"><header class="mock-top">
+<div><span class="demo-badge">SYNTHETIC DEMO · OFFLINE</span><h1>TA Hub</h1>
+<p>No real TA Hub or EC connection. All people, requisitions, links and actions on this page are simulated.</p></div>
+<a class="mock-button" href="ta-hub-dashboards.html">Back to Command Center</a></header>
+<main id="mockContent"></main><script src="demo-data.js"></script><script src="demo-runtime.js"></script></body></html>

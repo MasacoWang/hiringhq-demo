@@ -1,0 +1,75 @@
+{
+  "createdAt": "2026-09-21T03:58:42.765Z",
+  "note": "Synthetic fake-data demo copy for recording. Do not use for production refresh. Includes one fake Hired req and one fake Pre-Approval req.",
+  "counts": {
+    "candidates": 163,
+    "hms": 18,
+    "interviewers": 40,
+    "companies": 14,
+    "reqIds": 27,
+    "reqTitles": 26
+  },
+  "fakeExamples": {
+    "candidates": [
+      "Maya Lin",
+      "Ethan Park",
+      "Nora Chen",
+      "Leo Morgan",
+      "Ava Brooks",
+      "Owen Lee",
+      "Sofia Reed",
+      "Liam Carter",
+      "Jamie Wu"
+    ],
+    "hms": [
+      "AL",
+      "BT",
+      "CG",
+      "DK",
+      "EL",
+      "FR",
+      "GM",
+      "HS",
+      "Morgan Chen",
+      "Taylor Liu"
+    ],
+    "interviewers": [
+      "KK",
+      "ML",
+      "RC",
+      "DW",
+      "EP",
+      "JL",
+      "SN",
+      "TY"
+    ],
+    "reqIds": [
+      "DEMO-REQ-001",
+      "DEMO-REQ-002",
+      "DEMO-REQ-003",
+      "DEMO-REQ-004",
+      "DEMO-REQ-005",
+      "DEMO-REQ-006",
+      "DEMO-REQ-007",
+      "DEMO-REQ-008",
+      "DEMO-REQ-026",
+      "DEMO-REQ-027"
+    ],
+    "companies": [
+      "Northstar Robotics",
+      "Evergreen Systems",
+      "BluePeak Semiconductors",
+      "Summit Cloud",
+      "Pioneer Devices",
+      "Orbit Manufacturing",
+      "BrightPath AI",
+      "Silverline Mobility"
+    ]
+  },
+  "interfaceVersion": "0917 Kit / AI Recruiting Command Center / Reports panel",
+  "localMockPages": [
+    "demo-ta-hub.html",
+    "demo-ec.html",
+    "demo-disposition.html"
+  ]
+}

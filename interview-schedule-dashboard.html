@@ -1,0 +1,1861 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interview Schedule Dashboard</title>
+  <style>
+    :root { --cp-surface:#fff; --cp-border:#dedede; --cp-text:#242424; --cp-muted:#5c5c5c; --cp-accent:#b11f4b; --cp-soft:rgba(177,31,75,.08); --cp-link:#0078d4; --cp-success:#16a34a; --cp-warning:#f59e0b; --cp-danger:#dc2626; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:#fff; color:var(--cp-text); font-family:"Segoe UI", Aptos, Calibri, sans-serif; line-height:1.5; }
+    .page { max-width:1440px; margin:0 auto; padding:28px 20px 56px; }
+    .hero,.panel { background:#fff; border:1px solid var(--cp-border); border-radius:16px; box-shadow:0 0 2px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.14); }
+    .hero,.panel { padding:22px; margin-bottom:16px; }
+    .eyebrow { color:#c2185b; font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    h1 { margin:8px 0; font-size:30px; line-height:1.2; }
+    h2 { margin:0 0 14px; font-size:22px; }
+    .muted { color:var(--cp-muted); } .small { font-size:12px; }
+    .summary { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:16px 0; }
+    .metric { background:#ffffff; border:2px solid #e5e5e5; border-radius:.625rem; padding:12px; transition:border-color .15s, box-shadow .15s; cursor:pointer; text-align:left; font:inherit; color:var(--cp-text); }
+    .metric[data-status-tile="all"] { --tile-color:#f48fb1; }
+    .metric[data-status-tile="upcoming"] { --tile-color:#90c8f0; }
+    .metric[data-status-tile="past"] { --tile-color:#a5d6a7; }
+    .metric[data-status-tile="cancelled"] { --tile-color:#ffcc99; }
+    .metric[data-status-tile="no-meeting"] { --tile-color:#c8b6e2; }
+    .metric[data-status-tile] { border-color:var(--tile-color); }
+    .metric[data-status-tile]:hover { box-shadow:0 2px 8px color-mix(in srgb, var(--tile-color) 30%, transparent); }
+    .metric[data-status-tile].active { background:var(--tile-color); color:#ffffff; border-color:var(--tile-color); box-shadow:0 3px 10px color-mix(in srgb, var(--tile-color) 35%, transparent); }
+    .metric[data-status-tile].active .value, .metric[data-status-tile].active .label { color:#ffffff; }
+    .metric[data-status-tile] .value { color:var(--tile-color); }
+    .metric .value { font-size:24px; font-weight:900; }
+    .metric .label { color:var(--cp-muted); font-size:12px; }
+    .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:14px 0; }
+    select,input,button { border:1px solid var(--cp-border); background:#fff; color:var(--cp-text); border-radius:.625rem; padding:9px 12px; font:inherit; }
+    button { cursor:pointer; font-weight:700; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--cp-border); border-radius:16px; background:#fff; margin-top:12px; }
+    table { width:100%; border-collapse:collapse; min-width:1080px; }
+    th,td { border-bottom:1px solid var(--cp-border); padding:11px 10px; text-align:left; vertical-align:top; }
+    th { background:#f5f5f5; color:var(--cp-muted); font-size:12px; text-transform:uppercase; letter-spacing:.03em; position:sticky; top:0; z-index:1; }
+    tr:last-child td { border-bottom:0; }
+    .badge { display:inline-flex; align-items:center; border-radius:.625rem; padding:3px 8px; font-size:12px; font-weight:700; border:1px solid var(--cp-border); background:#fff; white-space:nowrap; }
+    .badge.upcoming { color:var(--cp-success); border-color:var(--cp-success); }
+    .badge.past { color:var(--cp-warning); border-color:var(--cp-warning); }
+    .badge.cancelled { color:var(--cp-danger); border-color:var(--cp-danger); }
+    .badge.meeting { color:var(--cp-muted); border-color:var(--cp-border); }
+    .mini-list { margin:0; padding-left:18px; } .mini-list li { margin:0 0 6px; }
+    .interviewer-list { list-style:none; padding-left:0; }
+    .resp { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; font-size:12px; font-weight:900; margin-right:4px; }
+    .resp.accepted { color:#16a34a; border:1px solid #16a34a; }
+    .resp.pending { color:#f59e0b; border:1px solid #f59e0b; }
+    .notice { border-left:4px solid #f48fb1; background:#fff; padding:12px 14px; border-radius:.625rem; margin-top:12px; color:#4a4a4a; }
+    #refreshCard { border:2px solid #f48fb1; border-left-width:4px; }
+    #refreshCard button { border:1px solid #f48fb1; color:#242424; background:#ffffff; }
+    #refreshCard button:hover { background:#f48fb1; color:#ffffff; }
+    .req-section { border:1px solid var(--cp-border); border-radius:16px; padding:16px; margin:14px 0; background:#fff; }
+    .req-section h3 { margin:0 0 4px; font-size:18px; }
+    .req-table { min-width:900px; }
+    .nowrap { white-space:nowrap; } a { color:var(--cp-link); font-weight:700; text-decoration:none; } a:hover { text-decoration:underline; }
+    @media(max-width:900px) { .summary { grid-template-columns:repeat(2,minmax(0,1fr)); } select,input { min-width:100%; } .page { padding:18px 10px 40px; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">Standalone Dashboard</div>
+      <h1>Interview Schedule Dashboard</h1>
+      <p class="muted">獨立 schedule dashboard，不會覆蓋既有 Feedback Dashboard。Scope: Interview stage only. 資料來源：TA Hub candidate drawer &gt; Hiring Activities &gt; Meetings。</p>
+      <div class="notice"><strong>Last scraped:</strong> 2026-09-20T13:02:04.105Z · <strong>Reqs:</strong> 25 · <strong>Candidates checked:</strong> 106</div>
+    </section>
+    <section class="panel">
+      <h2>Schedule Summary</h2>
+      <div class="summary">
+        <button class="metric active" type="button" data-status-tile="all"><div class="value">132</div><div class="label">Meeting cards</div></button>
+        <button class="metric" type="button" data-status-tile="upcoming"><div class="value">23</div><div class="label">Upcoming</div></button>
+        <button class="metric" type="button" data-status-tile="past"><div class="value">92</div><div class="label">Past</div></button>
+        <button class="metric" type="button" data-status-tile="cancelled"><div class="value">0</div><div class="label">Cancelled</div></button>
+        <button class="metric" type="button" data-status-tile="no-meeting"><div class="value">60</div><div class="label">No meeting parsed</div></button>
+      </div>
+      <div class="notice" id="refreshCard">
+        <strong>Refresh Schedule:</strong> Server status: <strong id="serverStatus">checking...</strong>
+        <div style="border:1px solid var(--cp-border);border-radius:8px;padding:10px 12px;margin:10px 0;background:#fff;">
+          <div style="font-weight:700;margin-bottom:6px;">1. Start Schedule Refresh Server</div>
+          <div class="muted small">Click Open server launcher. If your browser blocks opening .cmd files, copy the path and double-click it in File Explorer.</div>
+          <div class="controls" style="margin:8px 0 0;">
+            <a href="ta-hub-dashboards.html#reports" style="display:inline-block;padding:9px 12px;border:1px solid var(--cp-accent);border-radius:.625rem;background:var(--cp-accent);color:#fff;text-decoration:none;font-weight:800;">Open demo reports</a>
+            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('scheduleServerPath').textContent).then(()=>{this.textContent='Copied';setTimeout(()=>this.textContent='Copy path',1200);})">Copy path</button>
+          </div>
+          <code id="scheduleServerPath" style="display:block;margin-top:8px;font-size:12px;word-break:break-all;background:#fff;border:1px solid var(--cp-border);border-radius:6px;padding:4px 8px;">Not used in the synthetic demo. Use the demo email launcher for Outlook email only.</code>
+        </div>
+        <div style="font-weight:700;margin-top:10px;">2. Choose reqs and run</div>
+        <div class="controls" style="margin-bottom:0;">
+          <button type="button" id="selectVisibleReq">Select current req</button>
+          <button type="button" id="runSelected">Run selected schedule scrape</button>
+          <button type="button" id="runAll">Run all schedule scrape</button>
+          <button type="button" onclick="location.reload()">Reload page</button>
+        </div>
+        <div id="reqChecks" class="controls" style="align-items:flex-start;"><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-001"> DEMO-REQ-001 · Senior Hardware Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-002"> DEMO-REQ-002 · Cloud Operations Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-003"> DEMO-REQ-003 · Data Center Technician</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-004"> DEMO-REQ-004 · Technical Program Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-005"> DEMO-REQ-005 · Manufacturing Quality Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-006"> DEMO-REQ-006 · Firmware Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-007"> DEMO-REQ-007 · Supply Chain Program Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-008"> DEMO-REQ-008 · Infrastructure Sourcing Lead</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-009"> DEMO-REQ-009 · Data Center Inventory &amp; Asset Technician Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-010"> DEMO-REQ-010 · Product Quality Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-011"> DEMO-REQ-011 · Automation Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-012"> DEMO-REQ-012 · Reliability Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-013"> DEMO-REQ-013 · Mechanical Design Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-014"> DEMO-REQ-014 · Network Deployment Lead</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-015"> DEMO-REQ-015 · Security Program Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-016"> DEMO-REQ-016 · Business Operations Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-017"> DEMO-REQ-017 · AI Infrastructure Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-018"> DEMO-REQ-018 · Thermal Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-019"> DEMO-REQ-019 · Data Center Technician</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-020"> DEMO-REQ-020 · Datacenter Project Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-021"> DEMO-REQ-021 · Senior Hardware Engineer</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-022"> DEMO-REQ-022 · Cloud Operations Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-023"> DEMO-REQ-023 · Data Center Technician</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-024"> DEMO-REQ-024 · Technical Program Manager</label><label class="small"><input type="checkbox" class="req-cb" value="DEMO-REQ-025"> DEMO-REQ-025 · Manufacturing Quality Engineer</label></div>
+        <pre id="refreshLog" style="display:none;background:#1e1e1e;color:#dcdcdc;padding:10px;border-radius:8px;max-height:220px;overflow:auto;white-space:pre-wrap;font-size:12px;"></pre>
+      </div>
+      <div class="controls">
+        <label><strong>Req</strong></label><select id="reqFilter"><option value="all">All reqs</option><option value="DEMO-REQ-001">DEMO-REQ-001 - Senior Hardware Engineer</option><option value="DEMO-REQ-002">DEMO-REQ-002 - Cloud Operations Manager</option><option value="DEMO-REQ-003">DEMO-REQ-003 - Data Center Technician</option><option value="DEMO-REQ-004">DEMO-REQ-004 - Technical Program Manager</option><option value="DEMO-REQ-005">DEMO-REQ-005 - Manufacturing Quality Engineer</option><option value="DEMO-REQ-006">DEMO-REQ-006 - Firmware Engineer</option><option value="DEMO-REQ-007">DEMO-REQ-007 - Supply Chain Program Manager</option><option value="DEMO-REQ-008">DEMO-REQ-008 - Infrastructure Sourcing Lead</option><option value="DEMO-REQ-009">DEMO-REQ-009 - Data Center Inventory &amp; Asset Technician Manager</option><option value="DEMO-REQ-010">DEMO-REQ-010 - Product Quality Manager</option><option value="DEMO-REQ-011">DEMO-REQ-011 - Automation Engineer</option><option value="DEMO-REQ-012">DEMO-REQ-012 - Reliability Engineer</option><option value="DEMO-REQ-013">DEMO-REQ-013 - Mechanical Design Engineer</option><option value="DEMO-REQ-014">DEMO-REQ-014 - Network Deployment Lead</option><option value="DEMO-REQ-015">DEMO-REQ-015 - Security Program Manager</option><option value="DEMO-REQ-016">DEMO-REQ-016 - Business Operations Manager</option><option value="DEMO-REQ-017">DEMO-REQ-017 - AI Infrastructure Engineer</option><option value="DEMO-REQ-018">DEMO-REQ-018 - Thermal Engineer</option><option value="DEMO-REQ-019">DEMO-REQ-019 - Data Center Technician</option><option value="DEMO-REQ-020">DEMO-REQ-020 - Datacenter Project Manager</option><option value="DEMO-REQ-021">DEMO-REQ-021 - Senior Hardware Engineer</option><option value="DEMO-REQ-022">DEMO-REQ-022 - Cloud Operations Manager</option><option value="DEMO-REQ-023">DEMO-REQ-023 - Data Center Technician</option><option value="DEMO-REQ-024">DEMO-REQ-024 - Technical Program Manager</option><option value="DEMO-REQ-025">DEMO-REQ-025 - Manufacturing Quality Engineer</option></select>
+        <label><strong>Status</strong></label><select id="statusFilter"><option value="all">All statuses</option><option value="upcoming">Upcoming</option><option value="past">Past</option><option value="cancelled">Cancelled</option><option value="meeting">Meeting</option></select>
+        <label><strong>Candidate</strong></label><select id="candidateFilter"><option value="all">All candidates</option><option value="alex yeh">Lena Price</option><option value="allen tsai">Mason Blake</option><option value="andrew cheng">Victor Reed</option><option value="andrew chong">Mila Ross</option><option value="annie tsai">Brian Hale</option><option value="benji lee">Ethan Park</option><option value="charles wong">Eva Brooks</option><option value="che-han cheng">Dylan Shaw</option><option value="chia-min yang">Phoebe Grant</option><option value="chin-yeh chang">Amelia North</option><option value="chuen tse">Derek Lane</option><option value="chun keung yeung">Nora Chen</option><option value="cl lu">Clara Wood</option><option value="cora liu">Elena Chase</option><option value="daniel hsu">Sarah Lake</option><option value="eva chen">Miles Turner</option><option value="guy chan">Lucy Wells</option><option value="helen lo">Max Flynn</option><option value="hsieh-wei wu">Gavin Moss</option><option value="hsin-wei huang">Nina West</option><option value="jack yu">Chloe Rivers</option><option value="jason chow">Eli Dean</option><option value="jia-hong liu">Luna Scott</option><option value="joan lee">Mark River</option><option value="johnny liu">Ryan Vale</option><option value="ken chen">Adam King</option><option value="kenneth lee">Leo Morgan</option><option value="kyle huang">Ella Hayes</option><option value="lee hsuanying">Aria Lane</option><option value="michael lam">Vera Knight</option><option value="rex lin">Zoe Bennett</option><option value="rolland wong">Maya Lin</option><option value="rudy yang">Caleb Wright</option><option value="shen, riva">Stella Fox</option><option value="shih hsien lin">Evan Cole</option><option value="stanley tsai">Peter Vale</option><option value="tony lee">Hazel Quinn</option><option value="vic chen">Daniel Snow</option><option value="wade lee">Nathan Frost</option><option value="wing lee">Maria Stone</option><option value="yi fan chang">June Ellis</option><option value="yi yang shih">Lucas Gray</option><option value="yu-chuan chen">Kevin Woods</option><option value="yun huang">Ada Parker</option><option value="yung san chan">Hugo Pierce</option><option value="zihsuan hung">Ruby Clark</option></select>
+        <label><strong>Interviewer</strong></label><select id="interviewerFilter"><option value="all">All interviewers</option><option value="alan wang">Tessa Cole</option><option value="alicia tan">Ian Blake</option><option value="blue lan">Elena Chase</option><option value="chen yu fan">Lucas Gray</option><option value="elly wang">Luna Scott</option><option value="gary pan">Nathan Frost</option><option value="gaspard shen">Daniel Snow</option><option value="jp huang">Skye Turner</option><option value="jackie chang">Brian Hale</option><option value="james chen">Daniel Snow</option><option value="jimmy wu">Stella Fox</option><option value="joe ogolin">Renee Vale</option><option value="john liu">Daniel Snow</option><option value="joyce ho">Daniel Snow</option><option value="kartik rattan">Derek Lane</option><option value="ken kuang">Stella Fox</option><option value="loretta chan">Neil Carter</option><option value="ming mak">Luna Scott</option><option value="nipuna gunasekera">Felix Young</option><option value="paul hung">Hazel Quinn</option><option value="roger lai">Hazel Quinn</option><option value="simon yip">Amy Hayes</option><option value="steven chin">Elena Chase</option><option value="tim alexander">Elena Chase</option><option value="tzung-dar tsai">Peter Vale</option><option value="vanesa yu">Faye Miller</option><option value="wayne chu">Brian Hale</option><option value="zoe liu">Hazel Quinn</option></select>
+        <input id="candidateSearch" type="search" placeholder="Search candidate" />
+        <button type="button" id="clearFilters">Clear</button>
+      </div>
+      <h3 style="margin-top:18px;">By Candidate</h3>
+      <div id="reqSections"><section class="req-section" data-req-section="DEMO-REQ-001">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-001</a> · Senior Hardware Engineer</h3>
+      <div class="muted small">HM: Amy Hayes · Candidates checked: 4 · Meetings: 19</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="benji lee" data-interviewers="simon yip|loretta chan|joe ogolin|simon yip|alicia tan">
+        <td><a href="#demo-link" target="_blank"><strong>Ethan Park</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Aug 4th 2026 04:30 PM - 05:15 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Aug 20th 2026 10:30 AM - 11:30 AM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Aug 20th 2026 02:00 PM - 03:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Aug 20th 2026 04:00 PM - 05:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Ian Blake</strong> <span class="muted small">Aug 26th 2026 04:30 PM - 05:30 PM Asia/Shanghai</span></li></ul></td>
+        <td><strong>Aug 26th 2026 04:30 PM - 05:30 PM Asia/Shanghai</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|upcoming|meeting" data-candidate="chun keung yeung" data-interviewers="simon yip|loretta chan|joe ogolin|simon yip|alicia tan">
+        <td><a href="#demo-link" target="_blank"><strong>Nora Chen</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 10th 2026 03:00 PM - 03:45 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 22nd 2026 03:30 PM - 04:30 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Sep 24th 2026 12:00 PM - 01:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 24th 2026 12:00 PM - 01:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Ian Blake</strong> <span class="muted small">Sep 25th 2026 01:00 PM - 02:00 PM Asia/Shanghai</span></li></ul></td>
+        <td><strong>Sep 25th 2026 01:00 PM - 02:00 PM Asia/Shanghai</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="kenneth lee" data-interviewers="simon yip|joe ogolin|simon yip|alicia tan|loretta chan">
+        <td><a href="#demo-link" target="_blank"><strong>Leo Morgan</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 3rd 2026 03:30 PM - 04:15 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Sep 10th 2026 10:30 AM - 11:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 11th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Ian Blake</strong> <span class="muted small">Sep 11th 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 16th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 16th 2026 10:00 AM - 11:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="rolland wong" data-interviewers="simon yip|loretta chan|simon yip|alicia tan|joe ogolin">
+        <td><a href="#demo-link" target="_blank"><strong>Maya Lin</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Jul 31st 2026 11:00 AM - 11:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Aug 10th 2026 03:00 PM - 04:00 PM Asia/Hong</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Aug 11th 2026 10:00 AM - 11:00 AM Asia/Hong</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Ian Blake</strong> <span class="muted small">Aug 14th 2026 02:30 PM - 03:30 PM Asia/Hong</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Aug 17th 2026 01:00 PM - 02:00 PM Asia/Hong</span></li></ul></td>
+        <td><strong>Aug 17th 2026 01:00 PM - 02:00 PM Asia/Hong</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-002">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-002</a> · Cloud Operations Manager</h3>
+      <div class="muted small">HM: BT · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-003">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-003</a> · Data Center Technician</h3>
+      <div class="muted small">HM: CG · Candidates checked: 10 · Meetings: 24</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="allen tsai" data-interviewers="james chen|paul hung|steven chin|wayne chu|jimmy wu">
+        <td><a href="#demo-link" target="_blank"><strong>Mason Blake</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Aug 12th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Aug 12th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Aug 14th 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Aug 14th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Aug 14th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Aug 14th 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="jack yu" data-interviewers="gary pan|paul hung|james chen|wayne chu|jimmy wu|steven chin">
+        <td><a href="#demo-link" target="_blank"><strong>Chloe Rivers</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Nathan Frost</strong> <span class="muted small">Sep 4th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 4th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 7th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 7th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 7th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 8th 2026 09:00 AM - 10:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 8th 2026 09:00 AM - 10:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="kyle huang" data-interviewers="gary pan|paul hung|james chen|steven chin|wayne chu|jimmy wu">
+        <td><a href="#demo-link" target="_blank"><strong>Ella Hayes</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Nathan Frost</strong> <span class="muted small">Aug 28th 2026 01:00 PM - 02:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Aug 28th 2026 01:00 PM - 02:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 3rd 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 4th 2026 09:00 AM - 10:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 4th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 4th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 4th 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|meeting|pending confirmation|upcoming" data-candidate="rex lin" data-interviewers="steven chin|paul hung|wayne chu|jimmy wu|james chen">
+        <td><a href="#demo-link" target="_blank"><strong>Zoe Bennett</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 18th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 21st 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 21st 2026 04:30 PM - 05:30 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 21st 2026 04:30 PM - 05:30 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 22nd 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 22nd 2026 04:00 PM - 05:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="rudy yang" data-interviewers="james chen|steven chin|paul hung|wayne chu|jimmy wu">
+        <td><a href="#demo-link" target="_blank"><strong>Caleb Wright</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 14th 2026 09:00 AM - 10:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 18th 2026 09:00 AM - 10:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 18th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 18th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 18th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|meeting|upcoming" data-candidate="yi yang shih" data-interviewers="james chen|wayne chu|jimmy wu|steven chin|paul hung">
+        <td><a href="#demo-link" target="_blank"><strong>Lucas Gray</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 16th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 21st 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 21st 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 22nd 2026 06:00 AM - 07:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 22nd 2026 03:30 PM - 04:30 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 22nd 2026 03:30 PM - 04:30 PM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-004">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-004</a> · Technical Program Manager</h3>
+      <div class="muted small">HM: DK · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-005">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-005</a> · Manufacturing Quality Engineer</h3>
+      <div class="muted small">HM: DK · Candidates checked: 6 · Meetings: 17</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="eva chen" data-interviewers="jp huang|alan wang|tzung-dar tsai|roger lai">
+        <td><a href="#demo-link" target="_blank"><strong>Miles Turner</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Skye Turner</strong> <span class="muted small">Sep 2nd 2026 04:30 PM - 05:15 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 14th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 14th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 15th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 15th 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="hsin-wei huang" data-interviewers="gaspard shen|alan wang|tzung-dar tsai|roger lai">
+        <td><a href="#demo-link" target="_blank"><strong>Nina West</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 9th 2026 04:00 PM - 04:45 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 16th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 16th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 18th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 03:00 PM - 04:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="jia-hong liu" data-interviewers="gaspard shen|alan wang|tzung-dar tsai|roger lai">
+        <td><a href="#demo-link" target="_blank"><strong>Luna Scott</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 2nd 2026 08:30 AM - 09:15 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 14th 2026 09:30 AM - 10:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 14th 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 14th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 14th 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="johnny liu" data-interviewers="gaspard shen|tzung-dar tsai|roger lai|alan wang">
+        <td><a href="#demo-link" target="_blank"><strong>Ryan Vale</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 1st 2026 02:00 PM - 02:45 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 7th 2026 03:30 PM - 04:30 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 8th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 14th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 14th 2026 04:00 PM - 05:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="lee hsuanying" data-interviewers="jp huang">
+        <td><a href="#demo-link" target="_blank"><strong>Aria Lane</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Skye Turner</strong> <span class="muted small">Sep 4th 2026 11:00 AM - 11:45 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 4th 2026 11:00 AM - 11:45 AM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-006">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-006</a> · Firmware Engineer</h3>
+      <div class="muted small">HM: DK · Candidates checked: 3 · Meetings: 12</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="che-han cheng" data-interviewers="gaspard shen|tzung-dar tsai|roger lai|nipuna gunasekera">
+        <td><a href="#demo-link" target="_blank"><strong>Dylan Shaw</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 4th 2026 08:00 AM - 08:45 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 16th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 18th 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Felix Young</strong> <span class="muted small">Sep 19th 2026 08:00 AM - 09:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 19th 2026 08:00 AM - 09:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="shih hsien lin" data-interviewers="gaspard shen|tzung-dar tsai|nipuna gunasekera|roger lai">
+        <td><a href="#demo-link" target="_blank"><strong>Evan Cole</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Aug 19th 2026 04:30 PM - 05:15 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Aug 27th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Felix Young</strong> <span class="muted small">Aug 28th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 10th 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 10th 2026 11:00 AM - 12:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="zihsuan hung" data-interviewers="jp huang|roger lai|tzung-dar tsai|nipuna gunasekera">
+        <td><a href="#demo-link" target="_blank"><strong>Ruby Clark</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Skye Turner</strong> <span class="muted small">Sep 9th 2026 04:00 PM - 04:45 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 17th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 17th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Felix Young</strong> <span class="muted small">Sep 18th 2026 07:00 AM - 08:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 07:00 AM - 08:00 AM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-007">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-007</a> · Supply Chain Program Manager</h3>
+      <div class="muted small">HM: GM · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-008">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-008</a> · Infrastructure Sourcing Lead</h3>
+      <div class="muted small">HM: DK · Candidates checked: 5 · Meetings: 12</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="cl lu" data-interviewers="blue lan|jackie chang|joyce ho">
+        <td><a href="#demo-link" target="_blank"><strong>Clara Wood</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Aug 27th 2026 05:00 PM - 06:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 7th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 8th 2026 04:00 PM - 05:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 8th 2026 04:00 PM - 05:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="helen lo" data-interviewers="joyce ho|jackie chang|blue lan">
+        <td><a href="#demo-link" target="_blank"><strong>Max Flynn</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 2nd 2026 09:30 AM - 10:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 2nd 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 3rd 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 3rd 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="ken chen" data-interviewers="joyce ho|blue lan|jackie chang">
+        <td><a href="#demo-link" target="_blank"><strong>Adam King</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Aug 21st 2026 09:30 AM - 10:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Aug 21st 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Aug 28th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Aug 28th 2026 10:00 AM - 11:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="upcoming" data-candidate="yi fan chang" data-interviewers="joyce ho|jackie chang|blue lan">
+        <td><a href="#demo-link" target="_blank"><strong>June Ellis</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 21st 2026 09:30 AM - 10:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 21st 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 21st 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 21st 2026 03:00 PM - 04:00 PM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-009">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-009</a> · Data Center Inventory &amp; Asset Technician Manager</h3>
+      <div class="muted small">HM: Luna Scott · Candidates checked: 4 · Meetings: 13</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past|meeting|upcoming" data-candidate="andrew chong" data-interviewers="loretta chan|ming mak|joe ogolin|loretta chan">
+        <td><a href="#demo-link" target="_blank"><strong>Mila Ross</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 7th 2026 08:30 AM - 09:15 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Luna Scott</strong> <span class="muted small">Sep 23rd 2026 04:00 PM - 05:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Sep 28th 2026 10:00 AM - 11:00 AM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 28th 2026 03:00 PM - 04:00 PM Asia/Shanghai</span></li></ul></td>
+        <td><strong>Sep 28th 2026 03:00 PM - 04:00 PM Asia/Shanghai</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|upcoming|meeting" data-candidate="jason chow" data-interviewers="loretta chan|loretta chan|joe ogolin|ming mak">
+        <td><a href="#demo-link" target="_blank"><strong>Eli Dean</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 10th 2026 03:30 PM - 04:15 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 21st 2026 04:00 PM - 05:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Sep 28th 2026 02:00 PM - 03:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Luna Scott</strong> <span class="muted small">Sep 28th 2026 04:00 PM - 05:00 PM Asia/Shanghai</span></li></ul></td>
+        <td><strong>Sep 28th 2026 04:00 PM - 05:00 PM Asia/Shanghai</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="michael lam" data-interviewers="loretta chan">
+        <td><a href="#demo-link" target="_blank"><strong>Vera Knight</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 2nd 2026 04:30 PM - 05:15 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 2nd 2026 04:30 PM - 05:15 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|upcoming|meeting" data-candidate="yung san chan" data-interviewers="loretta chan|loretta chan|ming mak|joe ogolin">
+        <td><a href="#demo-link" target="_blank"><strong>Hugo Pierce</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 3rd 2026 04:00 PM - 04:45 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Neil Carter</strong> <span class="muted small">Sep 23rd 2026 10:00 AM - 11:00 AM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Luna Scott</strong> <span class="muted small">Sep 23rd 2026 03:00 PM - 04:00 PM Asia/Shanghai</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Renee Vale</strong> <span class="muted small">Sep 24th 2026 10:30 AM - 11:30 AM Asia/Shanghai</span></li></ul></td>
+        <td><strong>Sep 24th 2026 10:30 AM - 11:30 AM Asia/Shanghai</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-010">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-010</a> · Product Quality Manager</h3>
+      <div class="muted small">HM: KL · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-011">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-011</a> · Automation Engineer</h3>
+      <div class="muted small">HM: MN · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-012">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-012</a> · Reliability Engineer</h3>
+      <div class="muted small">HM: Faye Miller · Candidates checked: 20 · Meetings: 1</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="upcoming" data-candidate="charles wong" data-interviewers="vanesa yu">
+        <td><a href="#demo-link" target="_blank"><strong>Eva Brooks</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Faye Miller</strong> <span class="muted small">Oct 2nd 2026 11:00 AM - 11:45 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Oct 2nd 2026 11:00 AM - 11:45 AM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-013">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-013</a> · Mechanical Design Engineer</h3>
+      <div class="muted small">HM: QR · Candidates checked: 7 · Meetings: 6</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="upcoming" data-candidate="andrew cheng" data-interviewers="chen yu fan">
+        <td><a href="#demo-link" target="_blank"><strong>Victor Reed</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Lucas Gray</strong> <span class="muted small">Sep 24th 2026 10:30 AM - 11:30 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 24th 2026 10:30 AM - 11:30 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="upcoming" data-candidate="daniel hsu" data-interviewers="elly wang">
+        <td><a href="#demo-link" target="_blank"><strong>Sarah Lake</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Luna Scott</strong> <span class="muted small">Sep 23rd 2026 10:30 AM - 11:30 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 23rd 2026 10:30 AM - 11:30 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="joan lee" data-interviewers="chen yu fan">
+        <td><a href="#demo-link" target="_blank"><strong>Mark River</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Lucas Gray</strong> <span class="muted small">Sep 18th 2026 08:00 AM - 09:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 08:00 AM - 09:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="upcoming" data-candidate="stanley tsai" data-interviewers="elly wang">
+        <td><a href="#demo-link" target="_blank"><strong>Peter Vale</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Luna Scott</strong> <span class="muted small">Sep 24th 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 24th 2026 11:00 AM - 12:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="tony lee" data-interviewers="chen yu fan">
+        <td><a href="#demo-link" target="_blank"><strong>Hazel Quinn</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Lucas Gray</strong> <span class="muted small">Sep 18th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 10:00 AM - 11:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="upcoming" data-candidate="wade lee" data-interviewers="chen yu fan">
+        <td><a href="#demo-link" target="_blank"><strong>Nathan Frost</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Lucas Gray</strong> <span class="muted small">Sep 30th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 30th 2026 03:00 PM - 04:00 PM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-014">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-014</a> · Network Deployment Lead</h3>
+      <div class="muted small">HM: DK · Candidates checked: 2 · Meetings: 6</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="chin-yeh chang" data-interviewers="nipuna gunasekera|tzung-dar tsai|joyce ho">
+        <td><a href="#demo-link" target="_blank"><strong>Amelia North</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Felix Young</strong> <span class="muted small">Sep 15th 2026 09:00 AM - 10:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 15th 2026 10:30 AM - 11:30 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 15th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 15th 2026 03:00 PM - 04:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past" data-candidate="vic chen" data-interviewers="tzung-dar tsai|joyce ho|nipuna gunasekera">
+        <td><a href="#demo-link" target="_blank"><strong>Daniel Snow</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 17th 2026 01:00 PM - 02:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 17th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Felix Young</strong> <span class="muted small">Sep 18th 2026 08:00 AM - 09:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 08:00 AM - 09:00 AM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-015">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-015</a> · Security Program Manager</h3>
+      <div class="muted small">HM: Elena Chase · Candidates checked: 2 · Meetings: 7</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past|upcoming|meeting" data-candidate="cora liu" data-interviewers="zoe liu|john liu|tim alexander">
+        <td><a href="#demo-link" target="_blank"><strong>Elena Chase</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Sep 18th 2026 08:00 AM - 09:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Daniel Snow</strong> <span class="muted small">Sep 22nd 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Sep 23rd 2026 08:30 AM - 09:30 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 23rd 2026 08:30 AM - 09:30 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="meeting|pending confirmation" data-candidate="yu-chuan chen" data-interviewers="ken kuang|kartik rattan|zoe liu|tim alexander">
+        <td><a href="#demo-link" target="_blank"><strong>Kevin Woods</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 21st 2026 11:00 AM - 12:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Derek Lane</strong> <span class="muted small">Sep 24th 2026 08:00 AM - 09:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Hazel Quinn</strong> <span class="muted small">Oct 2nd 2026 08:00 AM - 09:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Elena Chase</strong> <span class="muted small">Oct 2nd 2026 09:00 AM - 10:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Oct 2nd 2026 09:00 AM - 10:00 AM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-016">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-016</a> · Business Operations Manager</h3>
+      <div class="muted small">HM: DK · Candidates checked: 3 · Meetings: 9</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past|pending confirmation" data-candidate="annie tsai" data-interviewers="jackie chang|tzung-dar tsai|alan wang">
+        <td><a href="#demo-link" target="_blank"><strong>Brian Hale</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 15th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 16th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 22nd 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 22nd 2026 10:00 AM - 11:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|upcoming" data-candidate="chia-min yang" data-interviewers="tzung-dar tsai|jackie chang|alan wang">
+        <td><a href="#demo-link" target="_blank"><strong>Phoebe Grant</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 17th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 18th 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 21st 2026 10:00 AM - 11:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 21st 2026 10:00 AM - 11:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="past|upcoming" data-candidate="shen, riva" data-interviewers="tzung-dar tsai|jackie chang|alan wang">
+        <td><a href="#demo-link" target="_blank"><strong>Stella Fox</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Peter Vale</strong> <span class="muted small">Sep 15th 2026 03:00 PM - 04:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Brian Hale</strong> <span class="muted small">Sep 17th 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Tessa Cole</strong> <span class="muted small">Sep 22nd 2026 02:00 PM - 03:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 22nd 2026 02:00 PM - 03:00 PM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-017">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-017</a> · AI Infrastructure Engineer</h3>
+      <div class="muted small">HM: Amy Hayes · Candidates checked: 22 · Meetings: 3</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="meeting" data-candidate="chuen tse" data-interviewers="simon yip">
+        <td><a href="#demo-link" target="_blank"><strong>Derek Lane</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 22nd 2026 02:30 PM - 03:15 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 22nd 2026 02:30 PM - 03:15 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="meeting" data-candidate="guy chan" data-interviewers="simon yip">
+        <td><a href="#demo-link" target="_blank"><strong>Lucy Wells</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 22nd 2026 08:30 AM - 09:00 AM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 22nd 2026 08:30 AM - 09:00 AM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="meeting" data-candidate="wing lee" data-interviewers="simon yip">
+        <td><a href="#demo-link" target="_blank"><strong>Maria Stone</strong></a><div class="muted small">Phone Screen</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Amy Hayes</strong> <span class="muted small">Sep 23rd 2026 04:30 PM - 05:15 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 23rd 2026 04:30 PM - 05:15 PM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-018">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-018</a> · Thermal Engineer</h3>
+      <div class="muted small">HM: Amy Hayes · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-019">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-019</a> · Data Center Technician</h3>
+      <div class="muted small">HM: CG · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-020">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-020</a> · Datacenter Project Manager</h3>
+      <div class="muted small">HM: Stella Fox · Candidates checked: 17 · Meetings: 3</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr class="req-meeting-row" data-status="past" data-candidate="alex yeh" data-interviewers="jimmy wu">
+        <td><a href="#demo-link" target="_blank"><strong>Lena Price</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 18th 2026 03:30 PM - 04:00 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 18th 2026 03:30 PM - 04:00 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="upcoming" data-candidate="hsieh-wei wu" data-interviewers="jimmy wu">
+        <td><a href="#demo-link" target="_blank"><strong>Gavin Moss</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 23rd 2026 12:00 PM - 12:30 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 23rd 2026 12:00 PM - 12:30 PM Asia/Taipei</strong></td>
+      </tr>
+<tr class="req-meeting-row" data-status="upcoming" data-candidate="yun huang" data-interviewers="jimmy wu">
+        <td><a href="#demo-link" target="_blank"><strong>Ada Parker</strong></a><div class="muted small">Interview</div></td>
+        <td><ul class="mini-list interviewer-list"><li><span class="resp pending" title="Not accepted yet">?</span> <strong>Stella Fox</strong> <span class="muted small">Sep 21st 2026 03:00 PM - 03:30 PM Asia/Taipei</span></li></ul></td>
+        <td><strong>Sep 21st 2026 03:00 PM - 03:30 PM Asia/Taipei</strong></td>
+      </tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-021">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-021</a> · Senior Hardware Engineer</h3>
+      <div class="muted small">HM: FR · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-022">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-022</a> · Cloud Operations Manager</h3>
+      <div class="muted small">HM: GM · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-023">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-023</a> · Data Center Technician</h3>
+      <div class="muted small">HM: HS · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-024">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-024</a> · Technical Program Manager</h3>
+      <div class="muted small">HM: BT · Candidates checked: 1 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section>
+<section class="req-section" data-req-section="DEMO-REQ-025">
+      <h3><a href="#demo-link" target="_blank">DEMO-REQ-025</a> · Manufacturing Quality Engineer</h3>
+      <div class="muted small">HM: KL · Candidates checked: 0 · Meetings: 0</div>
+      <div class="table-wrap"><table class="req-table">
+        <thead><tr><th>Candidate</th><th>Interviewers at a glance</th><th>Last round interview</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">No meetings parsed for this req yet.</td></tr></tbody>
+      </table></div>
+    </section></div>
+      <h3 style="margin-top:22px;">All meetings table</h3>
+      <div class="table-wrap"><table id="scheduleTable">
+        <thead><tr><th>Req</th><th>Position</th><th>Candidate</th><th>Status</th><th>Meeting time</th><th>Interviewers</th><th>Scheduled by</th></tr></thead>
+        <tbody><tr data-req="DEMO-REQ-001" data-status="past" data-candidate="benji lee" data-interviewers="joe ogolin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ethan Park</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 20th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Shanghai</div></td>
+      <td>Renee Vale</td>
+      <td>ZM<div class="muted small">Aug 12th 2026 10:30 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="benji lee" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ethan Park</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 20th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Shanghai</div></td>
+      <td>Amy Hayes</td>
+      <td>ZM<div class="muted small">Aug 12th 2026 10:30 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="benji lee" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ethan Park</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 20th 2026</strong><div class="muted small">10:30 AM - 11:30 AM Asia/Shanghai</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Aug 12th 2026 10:30 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="benji lee" data-interviewers="alicia tan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ethan Park</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 26th 2026</strong><div class="muted small">04:30 PM - 05:30 PM Asia/Shanghai</div></td>
+      <td>Ian Blake</td>
+      <td>ZM<div class="muted small">Aug 12th 2026 10:30 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="benji lee" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ethan Park</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 4th 2026</strong><div class="muted small">04:30 PM - 05:15 PM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Jul 31st 2026 01:13 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="chun keung yeung" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nora Chen</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 10th 2026</strong><div class="muted small">03:00 PM - 03:45 PM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Sep 7th 2026 01:26 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="upcoming" data-candidate="chun keung yeung" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nora Chen</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">03:30 PM - 04:30 PM Asia/Shanghai</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 09:01 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="upcoming" data-candidate="chun keung yeung" data-interviewers="joe ogolin|simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nora Chen</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 24th 2026</strong><div class="muted small">12:00 PM - 01:00 PM Asia/Shanghai</div></td>
+      <td>Renee Vale, Amy Hayes</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 09:01 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="meeting" data-candidate="chun keung yeung" data-interviewers="alicia tan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nora Chen</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 25th 2026</strong><div class="muted small">01:00 PM - 02:00 PM Asia/Shanghai</div></td>
+      <td>Ian Blake</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 09:01 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="kenneth lee" data-interviewers="joe ogolin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Leo Morgan</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 10th 2026</strong><div class="muted small">10:30 AM - 11:30 AM Asia/Taipei</div></td>
+      <td>Renee Vale</td>
+      <td>ZM<div class="muted small">Sep 7th 2026 01:34 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="kenneth lee" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Leo Morgan</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 11th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>ZM<div class="muted small">Sep 7th 2026 01:34 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="kenneth lee" data-interviewers="alicia tan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Leo Morgan</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 11th 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Ian Blake</td>
+      <td>ZM<div class="muted small">Sep 7th 2026 01:34 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="kenneth lee" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Leo Morgan</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 16th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Sep 7th 2026 01:34 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="kenneth lee" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Leo Morgan</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 3rd 2026</strong><div class="muted small">03:30 PM - 04:15 PM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Aug 26th 2026 12:37 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="rolland wong" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Maya Lin</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 10th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Hong</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Aug 7th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="rolland wong" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Maya Lin</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 11th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Hong</div></td>
+      <td>Amy Hayes</td>
+      <td>ZM<div class="muted small">Aug 7th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="rolland wong" data-interviewers="alicia tan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Maya Lin</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 14th 2026</strong><div class="muted small">02:30 PM - 03:30 PM Asia/Hong</div></td>
+      <td>Ian Blake</td>
+      <td>ZM<div class="muted small">Aug 7th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="rolland wong" data-interviewers="joe ogolin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Maya Lin</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 17th 2026</strong><div class="muted small">01:00 PM - 02:00 PM Asia/Hong</div></td>
+      <td>Renee Vale</td>
+      <td>ZM<div class="muted small">Aug 7th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-001" data-status="past" data-candidate="rolland wong" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-001</a></td>
+      <td>Senior Hardware Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Maya Lin</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Jul 31st 2026</strong><div class="muted small">11:00 AM - 11:30 AM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Jul 23rd 2026 05:53 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="allen tsai" data-interviewers="james chen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mason Blake</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 12th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>RC<div class="muted small">Aug 11th 2026 11:19 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="allen tsai" data-interviewers="paul hung">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mason Blake</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 12th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Aug 11th 2026 11:19 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="allen tsai" data-interviewers="wayne chu|jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mason Blake</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 14th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale, Stella Fox</td>
+      <td>RC<div class="muted small">Aug 11th 2026 11:19 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="allen tsai" data-interviewers="steven chin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mason Blake</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 14th 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>RC<div class="muted small">Aug 11th 2026 11:19 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="jack yu" data-interviewers="gary pan|paul hung">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Chloe Rivers</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 4th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Nathan Frost, Hazel Quinn</td>
+      <td>RC<div class="muted small">Aug 27th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="jack yu" data-interviewers="wayne chu|jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Chloe Rivers</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 7th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale, Stella Fox</td>
+      <td>RC<div class="muted small">Aug 27th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="jack yu" data-interviewers="james chen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Chloe Rivers</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 7th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>RC<div class="muted small">Aug 27th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="jack yu" data-interviewers="steven chin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Chloe Rivers</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 8th 2026</strong><div class="muted small">09:00 AM - 10:00 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>RC<div class="muted small">Aug 27th 2026 04:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="kyle huang" data-interviewers="gary pan|paul hung">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ella Hayes</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 28th 2026</strong><div class="muted small">01:00 PM - 02:00 PM Asia/Taipei</div></td>
+      <td>Nathan Frost, Hazel Quinn</td>
+      <td>RC<div class="muted small">Aug 25th 2026 01:47 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="kyle huang" data-interviewers="james chen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ella Hayes</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 3rd 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>RC<div class="muted small">Aug 25th 2026 01:47 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="kyle huang" data-interviewers="wayne chu|jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ella Hayes</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 4th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale, Stella Fox</td>
+      <td>RC<div class="muted small">Aug 25th 2026 01:47 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="kyle huang" data-interviewers="steven chin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ella Hayes</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 4th 2026</strong><div class="muted small">09:00 AM - 10:00 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>RC<div class="muted small">Aug 25th 2026 01:47 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="rex lin" data-interviewers="steven chin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Zoe Bennett</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>RC<div class="muted small">Sep 18th 2026 01:28 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="pending confirmation" data-candidate="rex lin" data-interviewers="wayne chu|jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Zoe Bennett</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge pending confirmation">Pending confirmation</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">04:30 PM - 05:30 PM Asia/Taipei</div></td>
+      <td>Brian Hale, Stella Fox</td>
+      <td>RC<div class="muted small">Sep 18th 2026 01:28 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="meeting" data-candidate="rex lin" data-interviewers="paul hung">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Zoe Bennett</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Sep 18th 2026 01:28 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="upcoming" data-candidate="rex lin" data-interviewers="james chen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Zoe Bennett</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>RC<div class="muted small">Sep 18th 2026 01:28 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="rudy yang" data-interviewers="james chen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Caleb Wright</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">09:00 AM - 10:00 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>RC<div class="muted small">Sep 11th 2026 07:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="rudy yang" data-interviewers="wayne chu|jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Caleb Wright</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale, Stella Fox</td>
+      <td>RC<div class="muted small">Sep 11th 2026 07:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="rudy yang" data-interviewers="steven chin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Caleb Wright</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">09:00 AM - 10:00 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>RC<div class="muted small">Sep 11th 2026 07:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="rudy yang" data-interviewers="paul hung">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Caleb Wright</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Sep 11th 2026 07:17 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="past" data-candidate="yi yang shih" data-interviewers="james chen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Lucas Gray</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 16th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>RC<div class="muted small">Sep 15th 2026 04:21 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="meeting" data-candidate="yi yang shih" data-interviewers="wayne chu|jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Lucas Gray</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale, Stella Fox</td>
+      <td>RC<div class="muted small">Sep 15th 2026 04:21 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="meeting" data-candidate="yi yang shih" data-interviewers="paul hung">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Lucas Gray</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">03:30 PM - 04:30 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Sep 15th 2026 04:21 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-003" data-status="upcoming" data-candidate="yi yang shih" data-interviewers="steven chin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td>
+      <td>Data Center Technician<div class="muted small">HM: CG</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Lucas Gray</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">06:00 AM - 07:00 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>RC<div class="muted small">Sep 15th 2026 04:21 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="eva chen" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Miles Turner</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>FG<div class="muted small">Sep 4th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="eva chen" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Miles Turner</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>FG<div class="muted small">Sep 4th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="eva chen" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Miles Turner</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 15th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>FG<div class="muted small">Sep 4th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="eva chen" data-interviewers="jp huang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Miles Turner</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 2nd 2026</strong><div class="muted small">04:30 PM - 05:15 PM Asia/Taipei</div></td>
+      <td>Skye Turner</td>
+      <td>NP<div class="muted small">Aug 26th 2026 09:43 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="hsin-wei huang" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nina West</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 16th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>FG<div class="muted small">Sep 14th 2026 01:44 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="hsin-wei huang" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nina West</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 16th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>FG<div class="muted small">Sep 14th 2026 01:44 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="hsin-wei huang" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nina West</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>FG<div class="muted small">Sep 14th 2026 01:44 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="hsin-wei huang" data-interviewers="gaspard shen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nina West</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 9th 2026</strong><div class="muted small">04:00 PM - 04:45 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>NP<div class="muted small">Sep 8th 2026 03:58 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="jia-hong liu" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Luna Scott</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>FG<div class="muted small">Sep 4th 2026 01:45 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="jia-hong liu" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Luna Scott</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">09:30 AM - 10:30 AM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>FG<div class="muted small">Sep 4th 2026 01:45 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="jia-hong liu" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Luna Scott</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>FG<div class="muted small">Sep 4th 2026 01:45 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="jia-hong liu" data-interviewers="gaspard shen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Luna Scott</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 2nd 2026</strong><div class="muted small">08:30 AM - 09:15 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>NP<div class="muted small">Aug 26th 2026 09:43 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="johnny liu" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ryan Vale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 14th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>FG<div class="muted small">Sep 4th 2026 05:19 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="johnny liu" data-interviewers="gaspard shen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ryan Vale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 1st 2026</strong><div class="muted small">02:00 PM - 02:45 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>NP<div class="muted small">Aug 26th 2026 09:43 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="johnny liu" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ryan Vale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 7th 2026</strong><div class="muted small">03:30 PM - 04:30 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>FG<div class="muted small">Sep 4th 2026 05:19 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="johnny liu" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ryan Vale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 8th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>FG<div class="muted small">Sep 4th 2026 05:19 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-005" data-status="past" data-candidate="lee hsuanying" data-interviewers="jp huang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td>
+      <td>Manufacturing Quality Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Aria Lane</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 4th 2026</strong><div class="muted small">11:00 AM - 11:45 AM Asia/Taipei</div></td>
+      <td>Skye Turner</td>
+      <td>NP<div class="muted small">Aug 28th 2026 02:12 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="che-han cheng" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Dylan Shaw</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 16th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 11:26 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="che-han cheng" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Dylan Shaw</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Sep 14th 2026 11:26 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="che-han cheng" data-interviewers="nipuna gunasekera">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Dylan Shaw</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 19th 2026</strong><div class="muted small">08:00 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Felix Young</td>
+      <td>RC<div class="muted small">Sep 14th 2026 11:26 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="che-han cheng" data-interviewers="gaspard shen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Dylan Shaw</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 4th 2026</strong><div class="muted small">08:00 AM - 08:45 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>NP<div class="muted small">Aug 28th 2026 02:13 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="shih hsien lin" data-interviewers="gaspard shen">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Evan Cole</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 19th 2026</strong><div class="muted small">04:30 PM - 05:15 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>NP<div class="muted small">Aug 18th 2026 03:02 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="shih hsien lin" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Evan Cole</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 27th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>RC<div class="muted small">Aug 26th 2026 09:51 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="shih hsien lin" data-interviewers="nipuna gunasekera">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Evan Cole</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 28th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Felix Young</td>
+      <td>RC<div class="muted small">Aug 26th 2026 09:51 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="shih hsien lin" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Evan Cole</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 10th 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Sep 7th 2026 11:49 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="zihsuan hung" data-interviewers="roger lai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ruby Clark</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 17th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>RC<div class="muted small">Sep 15th 2026 02:01 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="zihsuan hung" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ruby Clark</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 17th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>RC<div class="muted small">Sep 15th 2026 02:01 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="zihsuan hung" data-interviewers="nipuna gunasekera">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ruby Clark</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">07:00 AM - 08:00 AM Asia/Taipei</div></td>
+      <td>Felix Young</td>
+      <td>RC<div class="muted small">Sep 15th 2026 02:01 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-006" data-status="past" data-candidate="zihsuan hung" data-interviewers="jp huang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-006</a></td>
+      <td>Firmware Engineer<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ruby Clark</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 9th 2026</strong><div class="muted small">04:00 PM - 04:45 PM Asia/Taipei</div></td>
+      <td>Skye Turner</td>
+      <td>NP<div class="muted small">Sep 7th 2026 02:03 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="cl lu" data-interviewers="blue lan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Clara Wood</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 27th 2026</strong><div class="muted small">05:00 PM - 06:00 PM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>FG<div class="muted small">Aug 20th 2026 02:57 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="cl lu" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Clara Wood</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 7th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>FG<div class="muted small">Aug 20th 2026 02:57 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="cl lu" data-interviewers="joyce ho">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Clara Wood</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 8th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Aug 20th 2026 02:57 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="helen lo" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Max Flynn</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 2nd 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>FG<div class="muted small">Sep 1st 2026 10:29 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="helen lo" data-interviewers="joyce ho">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Max Flynn</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 2nd 2026</strong><div class="muted small">09:30 AM - 10:30 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Sep 1st 2026 10:29 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="helen lo" data-interviewers="blue lan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Max Flynn</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 3rd 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>FG<div class="muted small">Sep 1st 2026 10:29 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="ken chen" data-interviewers="blue lan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Adam King</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 21st 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>FG<div class="muted small">Aug 10th 2026 03:27 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="ken chen" data-interviewers="joyce ho">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Adam King</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 21st 2026</strong><div class="muted small">09:30 AM - 10:30 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Aug 10th 2026 03:27 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="past" data-candidate="ken chen" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Adam King</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Aug 28th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>FG<div class="muted small">Aug 10th 2026 03:27 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="upcoming" data-candidate="yi fan chang" data-interviewers="blue lan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>June Ellis</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>FG<div class="muted small">Sep 14th 2026 05:05 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="upcoming" data-candidate="yi fan chang" data-interviewers="joyce ho">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>June Ellis</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">09:30 AM - 10:30 AM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Sep 14th 2026 05:05 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-008" data-status="upcoming" data-candidate="yi fan chang" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td>
+      <td>Infrastructure Sourcing Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>June Ellis</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>FG<div class="muted small">Sep 14th 2026 05:05 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="meeting" data-candidate="andrew chong" data-interviewers="ming mak">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mila Ross</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Shanghai</div></td>
+      <td>Luna Scott</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 04:51 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="upcoming" data-candidate="andrew chong" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mila Ross</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 28th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Shanghai</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 04:51 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="upcoming" data-candidate="andrew chong" data-interviewers="joe ogolin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mila Ross</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 28th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Shanghai</div></td>
+      <td>Renee Vale</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 04:51 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="past" data-candidate="andrew chong" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mila Ross</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 7th 2026</strong><div class="muted small">08:30 AM - 09:15 AM Asia/Taipei</div></td>
+      <td>Neil Carter</td>
+      <td>NP<div class="muted small">Aug 26th 2026 04:37 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="past" data-candidate="jason chow" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Eli Dean</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 10th 2026</strong><div class="muted small">03:30 PM - 04:15 PM Asia/Taipei</div></td>
+      <td>Neil Carter</td>
+      <td>NP<div class="muted small">Sep 4th 2026 03:10 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="upcoming" data-candidate="jason chow" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Eli Dean</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Shanghai</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 04:48 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="upcoming" data-candidate="jason chow" data-interviewers="joe ogolin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Eli Dean</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 28th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Shanghai</div></td>
+      <td>Renee Vale</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 04:48 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="meeting" data-candidate="jason chow" data-interviewers="ming mak">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Eli Dean</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 28th 2026</strong><div class="muted small">04:00 PM - 05:00 PM Asia/Shanghai</div></td>
+      <td>Luna Scott</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 04:48 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="past" data-candidate="michael lam" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Vera Knight</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 2nd 2026</strong><div class="muted small">04:30 PM - 05:15 PM Asia/Taipei</div></td>
+      <td>Neil Carter</td>
+      <td>NP<div class="muted small">Aug 26th 2026 04:37 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="meeting" data-candidate="yung san chan" data-interviewers="ming mak">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Hugo Pierce</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Shanghai</div></td>
+      <td>Luna Scott</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 09:07 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="upcoming" data-candidate="yung san chan" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Hugo Pierce</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Shanghai</div></td>
+      <td>Neil Carter</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 09:07 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="upcoming" data-candidate="yung san chan" data-interviewers="joe ogolin">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Hugo Pierce</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 24th 2026</strong><div class="muted small">10:30 AM - 11:30 AM Asia/Shanghai</div></td>
+      <td>Renee Vale</td>
+      <td>ZM<div class="muted small">Sep 17th 2026 09:07 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-009" data-status="past" data-candidate="yung san chan" data-interviewers="loretta chan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-009</a></td>
+      <td>Data Center Inventory &amp; Asset Technician Manager<div class="muted small">HM: Luna Scott</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Hugo Pierce</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 3rd 2026</strong><div class="muted small">04:00 PM - 04:45 PM Asia/Taipei</div></td>
+      <td>Neil Carter</td>
+      <td>NP<div class="muted small">Aug 26th 2026 04:37 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-012" data-status="upcoming" data-candidate="charles wong" data-interviewers="vanesa yu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td>
+      <td>Reliability Engineer<div class="muted small">HM: Faye Miller</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Eva Brooks</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Oct 2nd 2026</strong><div class="muted small">11:00 AM - 11:45 AM Asia/Taipei</div></td>
+      <td>Faye Miller</td>
+      <td>NP<div class="muted small">Sep 16th 2026 11:09 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-013" data-status="upcoming" data-candidate="andrew cheng" data-interviewers="chen yu fan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td>
+      <td>Mechanical Design Engineer<div class="muted small">HM: QR</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Victor Reed</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 24th 2026</strong><div class="muted small">10:30 AM - 11:30 AM Asia/Taipei</div></td>
+      <td>Lucas Gray</td>
+      <td>NP<div class="muted small">Sep 15th 2026 04:30 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-013" data-status="upcoming" data-candidate="daniel hsu" data-interviewers="elly wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td>
+      <td>Mechanical Design Engineer<div class="muted small">HM: QR</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Sarah Lake</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">10:30 AM - 11:30 AM Asia/Taipei</div></td>
+      <td>Luna Scott</td>
+      <td>NP<div class="muted small">Sep 16th 2026 03:25 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-013" data-status="past" data-candidate="joan lee" data-interviewers="chen yu fan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td>
+      <td>Mechanical Design Engineer<div class="muted small">HM: QR</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Mark River</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">08:00 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Lucas Gray</td>
+      <td>NP<div class="muted small">Sep 11th 2026 09:35 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-013" data-status="upcoming" data-candidate="stanley tsai" data-interviewers="elly wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td>
+      <td>Mechanical Design Engineer<div class="muted small">HM: QR</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Peter Vale</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 24th 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Luna Scott</td>
+      <td>NP<div class="muted small">Sep 16th 2026 03:25 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-013" data-status="past" data-candidate="tony lee" data-interviewers="chen yu fan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td>
+      <td>Mechanical Design Engineer<div class="muted small">HM: QR</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Hazel Quinn</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Lucas Gray</td>
+      <td>NP<div class="muted small">Sep 16th 2026 03:25 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-013" data-status="upcoming" data-candidate="wade lee" data-interviewers="chen yu fan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td>
+      <td>Mechanical Design Engineer<div class="muted small">HM: QR</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Nathan Frost</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 30th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Lucas Gray</td>
+      <td>NP<div class="muted small">Sep 15th 2026 07:00 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-014" data-status="past" data-candidate="chin-yeh chang" data-interviewers="joyce ho">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-014</a></td>
+      <td>Network Deployment Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Amelia North</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 15th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Sep 10th 2026 10:08 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-014" data-status="past" data-candidate="chin-yeh chang" data-interviewers="nipuna gunasekera">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-014</a></td>
+      <td>Network Deployment Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Amelia North</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 15th 2026</strong><div class="muted small">09:00 AM - 10:00 AM Asia/Taipei</div></td>
+      <td>Felix Young</td>
+      <td>FG<div class="muted small">Sep 10th 2026 10:08 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-014" data-status="past" data-candidate="chin-yeh chang" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-014</a></td>
+      <td>Network Deployment Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Amelia North</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 15th 2026</strong><div class="muted small">10:30 AM - 11:30 AM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>FG<div class="muted small">Sep 10th 2026 10:08 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-014" data-status="past" data-candidate="vic chen" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-014</a></td>
+      <td>Network Deployment Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Daniel Snow</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 17th 2026</strong><div class="muted small">01:00 PM - 02:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>FG<div class="muted small">Sep 10th 2026 10:15 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-014" data-status="past" data-candidate="vic chen" data-interviewers="joyce ho">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-014</a></td>
+      <td>Network Deployment Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Daniel Snow</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 17th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Sep 10th 2026 10:15 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-014" data-status="past" data-candidate="vic chen" data-interviewers="nipuna gunasekera">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-014</a></td>
+      <td>Network Deployment Lead<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Daniel Snow</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">08:00 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Felix Young</td>
+      <td>FG<div class="muted small">Sep 10th 2026 10:15 AM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="past" data-candidate="cora liu" data-interviewers="zoe liu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Elena Chase</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">08:00 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>FG<div class="muted small">Sep 16th 2026 02:02 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="upcoming" data-candidate="cora liu" data-interviewers="john liu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Elena Chase</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Daniel Snow</td>
+      <td>FG<div class="muted small">Sep 16th 2026 02:02 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="meeting" data-candidate="cora liu" data-interviewers="tim alexander">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Elena Chase</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">08:30 AM - 09:30 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>FG<div class="muted small">Sep 16th 2026 02:02 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="pending confirmation" data-candidate="yu-chuan chen" data-interviewers="zoe liu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Kevin Woods</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge pending confirmation">Pending confirmation</span></td>
+      <td><strong>Oct 2nd 2026</strong><div class="muted small">08:00 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Hazel Quinn</td>
+      <td>FG<div class="muted small">Sep 16th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="pending confirmation" data-candidate="yu-chuan chen" data-interviewers="tim alexander">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Kevin Woods</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge pending confirmation">Pending confirmation</span></td>
+      <td><strong>Oct 2nd 2026</strong><div class="muted small">09:00 AM - 10:00 AM Asia/Taipei</div></td>
+      <td>Elena Chase</td>
+      <td>FG<div class="muted small">Sep 16th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="meeting" data-candidate="yu-chuan chen" data-interviewers="ken kuang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Kevin Woods</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">11:00 AM - 12:00 PM Asia/Taipei</div></td>
+      <td>Stella Fox</td>
+      <td>FG<div class="muted small">Sep 16th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-015" data-status="pending confirmation" data-candidate="yu-chuan chen" data-interviewers="kartik rattan">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-015</a></td>
+      <td>Security Program Manager<div class="muted small">HM: Elena Chase</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Kevin Woods</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge pending confirmation">Pending confirmation</span></td>
+      <td><strong>Sep 24th 2026</strong><div class="muted small">08:00 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Derek Lane</td>
+      <td>FG<div class="muted small">Sep 16th 2026 01:50 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="past" data-candidate="annie tsai" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Brian Hale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 15th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 05:35 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="past" data-candidate="annie tsai" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Brian Hale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 16th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 05:35 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="pending confirmation" data-candidate="annie tsai" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Brian Hale</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge pending confirmation">Pending confirmation</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>RC<div class="muted small">Sep 14th 2026 05:35 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="past" data-candidate="chia-min yang" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Phoebe Grant</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 17th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 02:13 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="past" data-candidate="chia-min yang" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Phoebe Grant</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 02:13 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="upcoming" data-candidate="chia-min yang" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Phoebe Grant</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">10:00 AM - 11:00 AM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>RC<div class="muted small">Sep 14th 2026 02:13 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="past" data-candidate="shen, riva" data-interviewers="tzung-dar tsai">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Stella Fox</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 15th 2026</strong><div class="muted small">03:00 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Peter Vale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 02:14 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="past" data-candidate="shen, riva" data-interviewers="jackie chang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Stella Fox</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 17th 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Brian Hale</td>
+      <td>RC<div class="muted small">Sep 14th 2026 02:14 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-016" data-status="upcoming" data-candidate="shen, riva" data-interviewers="alan wang">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-016</a></td>
+      <td>Business Operations Manager<div class="muted small">HM: DK</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Stella Fox</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">02:00 PM - 03:00 PM Asia/Taipei</div></td>
+      <td>Tessa Cole</td>
+      <td>RC<div class="muted small">Sep 14th 2026 02:14 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-017" data-status="meeting" data-candidate="chuen tse" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td>
+      <td>AI Infrastructure Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Derek Lane</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">02:30 PM - 03:15 PM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Sep 15th 2026 06:45 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-017" data-status="meeting" data-candidate="guy chan" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td>
+      <td>AI Infrastructure Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Lucy Wells</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 22nd 2026</strong><div class="muted small">08:30 AM - 09:00 AM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Sep 15th 2026 06:45 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-017" data-status="meeting" data-candidate="wing lee" data-interviewers="simon yip">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td>
+      <td>AI Infrastructure Engineer<div class="muted small">HM: Amy Hayes</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Maria Stone</strong></a><div class="muted small">Phone Screen</div></td>
+      <td><span class="badge meeting">Meeting</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">04:30 PM - 05:15 PM Asia/Taipei</div></td>
+      <td>Amy Hayes</td>
+      <td>NP<div class="muted small">Sep 16th 2026 03:37 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-020" data-status="past" data-candidate="alex yeh" data-interviewers="jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td>
+      <td>Datacenter Project Manager<div class="muted small">HM: Stella Fox</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Lena Price</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge past">Past</span></td>
+      <td><strong>Sep 18th 2026</strong><div class="muted small">03:30 PM - 04:00 PM Asia/Taipei</div></td>
+      <td>Stella Fox</td>
+      <td>NP<div class="muted small">Sep 17th 2026 04:06 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-020" data-status="upcoming" data-candidate="hsieh-wei wu" data-interviewers="jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td>
+      <td>Datacenter Project Manager<div class="muted small">HM: Stella Fox</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Gavin Moss</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 23rd 2026</strong><div class="muted small">12:00 PM - 12:30 PM Asia/Taipei</div></td>
+      <td>Stella Fox</td>
+      <td>NP<div class="muted small">Sep 17th 2026 04:06 PM</div></td>
+    </tr>
+<tr data-req="DEMO-REQ-020" data-status="upcoming" data-candidate="yun huang" data-interviewers="jimmy wu">
+      <td class="nowrap"><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td>
+      <td>Datacenter Project Manager<div class="muted small">HM: Stella Fox</div></td>
+      <td><a href="#demo-link" target="_blank"><strong>Ada Parker</strong></a><div class="muted small">Interview</div></td>
+      <td><span class="badge upcoming">Upcoming</span></td>
+      <td><strong>Sep 21st 2026</strong><div class="muted small">03:00 PM - 03:30 PM Asia/Taipei</div></td>
+      <td>Stella Fox</td>
+      <td>NP<div class="muted small">Sep 17th 2026 04:06 PM</div></td>
+    </tr></tbody>
+      </table></div>
+    </section>
+    <section class="panel">
+      <h2>Candidates with no parsed meeting</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Req</th><th>Position</th><th>Candidate</th><th>Note</th></tr></thead>
+        <tbody><tr data-req="DEMO-REQ-003"><td><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td><td>Data Center Technician</td><td><strong>Sofia Reed</strong><div class="muted small">Phone Screen</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-003"><td><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td><td>Data Center Technician</td><td><strong>Liam Carter</strong><div class="muted small">Phone Screen</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-003"><td><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td><td>Data Center Technician</td><td><strong>Ivy Stone</strong><div class="muted small">Phone Screen</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-003"><td><a href="#demo-link" target="_blank">DEMO-REQ-003</a></td><td>Data Center Technician</td><td><strong>Noah Kim</strong><div class="muted small">Phone Screen</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-005"><td><a href="#demo-link" target="_blank">DEMO-REQ-005</a></td><td>Manufacturing Quality Engineer</td><td><strong>Evan Cole</strong><div class="muted small">Phone Screen</div></td><td>Phone Screen Scheduling</td></tr>
+<tr data-req="DEMO-REQ-008"><td><a href="#demo-link" target="_blank">DEMO-REQ-008</a></td><td>Infrastructure Sourcing Lead</td><td><strong>Lily Hart</strong><div class="muted small">Phone Screen</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Ben Archer</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Rosa Miles</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Sean Ryder</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Tessa Cole</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Mark River</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Finn Morris</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Peter Vale</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Sarah Lake</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Nathan Frost</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Hazel Quinn</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Victor Reed</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Amelia North</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Daniel Snow</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Violet Gray</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Jason Field</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Irene Blake</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Kevin Woods</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Phoebe Grant</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-012"><td><a href="#demo-link" target="_blank">DEMO-REQ-012</a></td><td>Reliability Engineer</td><td><strong>Meg Quinn</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-013"><td><a href="#demo-link" target="_blank">DEMO-REQ-013</a></td><td>Mechanical Design Engineer</td><td><strong>Olivia Shore</strong><div class="muted small">Phone Screen</div></td><td>no Hiring Activities tab</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Ryan Vale</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Aria Lane</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Miles Turner</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Nina West</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Kai Miller</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Tara James</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Henry Ford</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Iris Walker</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Jonah Price</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Emma Bell</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Theo Grant</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Lily Hart</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Adam King</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Clara Wood</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Max Flynn</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Colin Drake</strong><div class="muted small">Interview</div></td><td>Scheduling in progress</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Oscar Quinn</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Bella Fox</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-017"><td><a href="#demo-link" target="_blank">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td><strong>Sam Cross</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Cora West</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Nathan Frost</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Violet Gray</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Jason Field</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Elena Chase</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Kevin Woods</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Isaac West</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Brian Hale</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Stella Fox</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Colin Drake</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Lucy Wells</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Derek Lane</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Maria Stone</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-020"><td><a href="#demo-link" target="_blank">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td><strong>Isaac West</strong><div class="muted small">Interview</div></td><td>No meeting scheduled yet</td></tr>
+<tr data-req="DEMO-REQ-024"><td><a href="#demo-link" target="_blank">DEMO-REQ-024</a></td><td>Technical Program Manager</td><td><strong>Tyler Brook</strong><div class="muted small">Interview</div></td><td>no meeting cards parsed</td></tr></tbody>
+      </table></div>
+    </section>
+  </main>
+  <script>
+    const reqFilter = document.getElementById('reqFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const candidateFilter = document.getElementById('candidateFilter');
+    const interviewerFilter = document.getElementById('interviewerFilter');
+    const candidateSearch = document.getElementById('candidateSearch');
+    function applyFilters() {
+      const req = reqFilter.value;
+      const status = statusFilter.value;
+      const candidateValue = candidateFilter.value;
+      const interviewer = interviewerFilter.value;
+      const cand = candidateSearch.value.trim().toLowerCase();
+      document.querySelectorAll('#scheduleTable tbody tr').forEach(row => {
+        const okReq = req === 'all' || row.dataset.req === req;
+        const okStatus = status === 'all' || row.dataset.status === status;
+        const okCandidate = candidateValue === 'all' || row.dataset.candidate === candidateValue;
+        const okInterviewer = interviewer === 'all' || (row.dataset.interviewers || '').split('|').includes(interviewer);
+        const okCand = !cand || (row.dataset.candidate || '').includes(cand);
+        row.style.display = okReq && okStatus && okCandidate && okInterviewer && okCand ? '' : 'none';
+      });
+      document.querySelectorAll('[data-req-section]').forEach(section => {
+        const reqSectionMatch = req === 'all' || section.dataset.reqSection === req;
+        let visibleRows = 0;
+        section.querySelectorAll('.req-meeting-row').forEach(row => {
+          const okStatus = status === 'all' || (row.dataset.status || '').split('|').includes(status);
+          const okCandidate = candidateValue === 'all' || row.dataset.candidate === candidateValue;
+          const okInterviewer = interviewer === 'all' || (row.dataset.interviewers || '').split('|').includes(interviewer);
+          const okCand = !cand || (row.dataset.candidate || '').includes(cand);
+          const show = reqSectionMatch && okStatus && okCandidate && okInterviewer && okCand;
+          row.style.display = show ? '' : 'none';
+          if (show) visibleRows++;
+        });
+        section.style.display = reqSectionMatch && visibleRows > 0 ? '' : 'none';
+      });
+    }
+    [reqFilter, statusFilter, candidateFilter, interviewerFilter, candidateSearch].forEach(el => el.addEventListener('input', applyFilters));
+    document.querySelectorAll('[data-status-tile]').forEach(btn => btn.addEventListener('click', () => {
+      const status = btn.dataset.statusTile;
+      if (status !== 'no-meeting') statusFilter.value = status;
+      document.querySelectorAll('[data-status-tile]').forEach(b => b.classList.toggle('active', b === btn));
+      applyFilters();
+      if (status === 'no-meeting') document.querySelector('section.panel:last-of-type')?.scrollIntoView({ behavior: 'smooth' });
+    }));
+    document.getElementById('clearFilters').addEventListener('click', () => { reqFilter.value = 'all'; statusFilter.value = 'all'; candidateFilter.value = 'all'; interviewerFilter.value = 'all'; candidateSearch.value = ''; applyFilters(); });
+    (function initSort(){
+      const table = document.getElementById('scheduleTable');
+      if (!table) return;
+      const headers = Array.from(table.querySelectorAll('th'));
+      let col = -1, dir = 1;
+      headers.forEach((th, idx) => {
+        th.style.cursor = 'pointer';
+        th.title = 'Click to sort';
+        th.addEventListener('click', () => {
+          if (col === idx) dir *= -1; else { col = idx; dir = 1; }
+          const tbody = table.querySelector('tbody');
+          Array.from(tbody.querySelectorAll('tr')).sort((a, b) => {
+            const av = (a.children[idx]?.textContent || '').trim().toLowerCase();
+            const bv = (b.children[idx]?.textContent || '').trim().toLowerCase();
+            return av.localeCompare(bv) * dir;
+          }).forEach(r => tbody.appendChild(r));
+        });
+      });
+    })();
+    (function initDemoRefresh(){
+          const status=document.getElementById('serverStatus');
+          if(status)status.textContent='Offline demo';
+          ['runSelected','runAll'].forEach(id=>{
+            const button=document.getElementById(id);
+            if(button)button.onclick=()=>{
+              const log=document.getElementById('refreshLog');
+              if(log){log.style.display='block';log.textContent='Synthetic schedule data is loaded. No live scrape.';}
+            };
+          });
+        })();
+  </script>
+<!-- DEMO-LOCAL-ASSETS:START --><script src="demo-data.js"></script><script src="demo-email.js"></script><script src="demo-runtime.js"></script><!-- DEMO-LOCAL-ASSETS:END --></body>
+</html>

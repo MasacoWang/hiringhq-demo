@@ -1,0 +1,1527 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<script>
+// Block accidental touchpad pinch-zoom (Ctrl+wheel); keyboard Ctrl +/- still works.
+window.addEventListener('wheel', function(e){ if(e.ctrlKey) e.preventDefault(); }, { passive:false });
+window.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+</script>
+<title>TA Hub — Combined Feedback + Interview Schedule</title>
+<style>
+  :root {
+    color-scheme: light;
+    --cp-bg: #ffffff;
+    --cp-bg-elevated: #fcfbf8;
+    --cp-surface: #ffffff;
+    --cp-surface-soft: #f5f5f5;
+    --cp-border: #dedede;
+    --cp-border-strong: #919191;
+    --cp-text: #242424;
+    --cp-text-muted: #5c5c5c;
+    --cp-text-soft: #6f6f6f;
+    --cp-accent: #b11f4b;
+    --cp-accent-hover: #9a1a41;
+    --cp-accent-soft: rgba(177, 31, 75, 0.08);
+    --cp-accent-fg: #ffffff;
+    --cp-success: #16a34a;
+    --cp-danger: #dc2626;
+    --cp-warning: #f59e0b;
+    --cp-link: #0078d4;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+    --cp-overlay: rgba(255, 255, 255, 0.8);
+    --cp-panel: rgba(255, 255, 255, 0.86);
+    --cp-panel-strong: rgba(255, 255, 255, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.55);
+    --cp-highlight: rgba(177, 31, 75, 0.12);
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --cp-bg: #3d3b3a;
+    --cp-bg-elevated: #343231;
+    --cp-surface: #292929;
+    --cp-surface-soft: #2e2e2e;
+    --cp-border: #474747;
+    --cp-border-strong: #5f5f5f;
+    --cp-text: #dedede;
+    --cp-text-muted: #919191;
+    --cp-text-soft: #b0b0b0;
+    --cp-accent: #fd8ea1;
+    --cp-accent-hover: #fb7b91;
+    --cp-accent-soft: rgba(253, 142, 161, 0.14);
+    --cp-accent-fg: #1a1a1a;
+    --cp-success: #4ade80;
+    --cp-danger: #f87171;
+    --cp-warning: #fbbf24;
+    --cp-link: #4da6ff;
+    --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+    --cp-overlay: rgba(41, 41, 41, 0.88);
+    --cp-panel: rgba(41, 41, 41, 0.72);
+    --cp-panel-strong: rgba(41, 41, 41, 0.96);
+    --cp-sheen: rgba(255, 255, 255, 0.04);
+    --cp-highlight: rgba(253, 142, 161, 0.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;color:var(--cp-text);background:var(--cp-bg);}
+  header.top{padding:20px 28px;background:var(--cp-surface);border-bottom:1px solid var(--cp-border);}
+  header.top h1{margin:0;font-size:1.35rem;}
+  header.top .sub{color:var(--cp-text-muted);font-size:.85rem;margin-top:4px;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+  .lg{font-size:.8rem;padding:4px 10px;border-radius:0.625rem;border:1px solid var(--cp-border);background:var(--cp-surface);}
+  .lg b{margin-left:4px;}
+  main{padding:20px 28px;max-width:none;margin:0;}
+  .filters{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:14px 16px;background:var(--cp-surface);border:1px solid var(--cp-border);border-radius:16px;box-shadow:0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);flex-wrap:wrap;}
+  .filters label{font-weight:700;color:var(--cp-text);}
+  .filter-group{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
+  .filters select{min-width:180px;max-width:100%;padding:7px 10px;border:1px solid var(--cp-border-strong);border-radius:0.625rem;background:var(--cp-surface);color:var(--cp-text);font:inherit;}
+  .filter-clear{padding:7px 12px;border:1px solid var(--cp-border-strong);border-radius:0.625rem;background:var(--cp-surface);color:var(--cp-text);font:inherit;cursor:pointer;}
+  .filter-count{color:var(--cp-text-muted);font-size:.82rem;}
+  .hm-section{margin-bottom:28px;}
+  .hm-section h2{margin:0 0 12px;font-size:1.05rem;color:var(--cp-text);}
+  .hm-section h2 span{font-size:.8rem;color:var(--cp-text-muted);font-weight:600;margin-left:8px;}
+  .req-card{background:var(--cp-surface);border:1px solid var(--cp-border);border-radius:16px;margin-bottom:20px;overflow:hidden;box-shadow:0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);}
+  .req-head{padding:14px 18px;border-bottom:2px solid var(--cp-accent);background:var(--cp-panel-strong);}
+  .req-id{font-weight:800;color:var(--cp-link);font-size:1.05rem;margin-right:8px;}
+  .req-pos{font-weight:600;}
+  .req-meta{color:var(--cp-text-muted);font-size:.82rem;margin-top:4px;}
+  .req-meta a{color:var(--cp-link);text-decoration:none;}
+  table.cmb{width:100%;border-collapse:collapse;font-size:.86rem;}
+  table.cmb th{text-align:left;background:var(--cp-surface-soft);color:var(--cp-text);font-size:.78rem;padding:8px 12px;border-bottom:1px solid var(--cp-border);}
+  table.cmb td{padding:9px 12px;border-bottom:1px solid var(--cp-border);vertical-align:top;}
+  table.cmb tr:last-child td{border-bottom:none;}
+  .sort-btn{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;text-align:left;padding:0;cursor:pointer;}
+  .sort-btn:hover,.sort-btn:focus{color:var(--cp-accent);outline:none;}
+  .sort-mark{color:var(--cp-text-soft);font-weight:700;margin-left:4px;}
+  .sort-btn[aria-sort="ascending"] .sort-mark,.sort-btn[aria-sort="descending"] .sort-mark{color:var(--cp-accent);}
+  .stage-pill{display:inline-block;padding:2px 8px;border-radius:0.625rem;background:var(--cp-accent-soft);color:var(--cp-text);font-size:.78rem;font-weight:700;}
+  .req-tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:12px 0 4px;}
+  .tile{border:1px solid var(--cp-border);border-radius:0.625rem;background:var(--cp-surface);padding:10px 12px;text-align:center;font:inherit;cursor:pointer;transition:box-shadow .12s,border-color .12s,transform .05s;}
+  .tile:hover{border-color:var(--cp-text-muted);box-shadow:0 2px 6px rgba(0,0,0,.08);}
+  .tile:active{transform:translateY(1px);}
+  .tile.is-active{border-color:#0067b8;box-shadow:0 0 0 2px rgba(0,103,184,.25);background:#f3f9ff;}
+  .tile-n{font-size:1.5rem;font-weight:800;line-height:1.1;}
+  .tile-l{font-size:.74rem;color:var(--cp-text-muted);margin-top:2px;}
+  .t-all .tile-n{color:#b11f4b;} .t-br .tile-n{color:#0067b8;} .t-ps .tile-n{color:#0b6a0b;} .t-iv .tile-n{color:#ca5010;} .t-pd .tile-n{color:#8250df;} .t-up .tile-n{color:#0f8a8a;}
+  @media (max-width:700px){
+    .req-tiles{grid-template-columns:repeat(2,1fr);}
+    /* Let the 6-column candidate table scroll horizontally inside its card instead of
+       overflowing the whole page; shrink text + padding so more fits on a phone. */
+    .req-card{overflow-x:auto;}
+    table.cmb{font-size:.78rem;min-width:640px;}
+    table.cmb th{padding:6px 8px;}
+    table.cmb td{padding:6px 8px;}
+    .filters{gap:6px;padding:10px 12px;}
+    .filters select{min-width:140px;}
+    main{padding:0 8px;}
+  }
+  .ctr{text-align:center;}
+  .muted{color:var(--cp-text-soft);}
+  .tiny{font-size:.72rem;}
+  a{color:var(--cp-link);}
+  .v-hire{color:var(--cp-success);font-weight:700;}
+  .v-nohire{color:var(--cp-danger);font-weight:700;}
+  .v-pending{color:var(--cp-warning);font-weight:700;}
+  .v-check{color:var(--cp-accent);font-weight:700;}
+  .badge{display:inline-block;border-radius:0.625rem;padding:1px 7px;font-size:.7rem;font-weight:700;}
+  .b-up{background:var(--cp-accent-soft);color:var(--cp-success);}
+  .b-past{background:var(--cp-accent-soft);color:var(--cp-warning);}
+  .b-pend{background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;}
+  .b-pend-note{color:#8a6d00;font-weight:700;}
+  .b-noschd{background:var(--cp-surface-soft);color:var(--cp-text-muted);margin-left:6px;}
+  .sch-line{padding:2px 0;}
+  .mini-list{list-style:none;margin:0;padding:0;}
+  .mini-list li{padding:4px 0;}
+  .mini-list li + li{border-top:1px dashed var(--cp-border);}
+  .small{font-size:.72rem;}
+  .sch-line + .sch-line{border-top:1px dashed var(--cp-border);}
+</style></head>
+<body>
+<header class="top">
+  <h1>TA Hub — Combined Feedback &amp; Interview Schedule</h1>
+  <div class="sub">Grouped by Hiring Manager. One row per candidate with current stage, feedback summary (current-stage feedback only), schedule, and candidate source.<br>
+  Feedback scraped 2026-09-20T13:01:40.893Z · Schedule scraped 2026-09-20T13:02:04.105Z · Built Sep 20, 2026, 09:14 PM · 85 candidates across 16 reqs.</div>
+</header>
+<main>
+  <div class="filters">
+    <span class="filter-group"><label for="reqFilter">Req filter</label>
+    <select id="reqFilter">
+      <option value="all">All reqs</option>
+      <option value="DEMO-REQ-001">DEMO-REQ-001 - Senior Hardware Engineer</option><option value="DEMO-REQ-003">DEMO-REQ-003 - Data Center Technician</option><option value="DEMO-REQ-005">DEMO-REQ-005 - Manufacturing Quality Engineer</option><option value="DEMO-REQ-006">DEMO-REQ-006 - Firmware Engineer</option><option value="DEMO-REQ-007">DEMO-REQ-007 - Supply Chain Program Manager</option><option value="DEMO-REQ-008">DEMO-REQ-008 - Infrastructure Sourcing Lead</option><option value="DEMO-REQ-009">DEMO-REQ-009 - Data Center Inventory &amp; Asset Technician Manager</option><option value="DEMO-REQ-012">DEMO-REQ-012 - Reliability Engineer</option><option value="DEMO-REQ-013">DEMO-REQ-013 - Mechanical Design Engineer</option><option value="DEMO-REQ-014">DEMO-REQ-014 - Network Deployment Lead</option><option value="DEMO-REQ-015">DEMO-REQ-015 - Security Program Manager</option><option value="DEMO-REQ-016">DEMO-REQ-016 - Business Operations Manager</option><option value="DEMO-REQ-017">DEMO-REQ-017 - AI Infrastructure Engineer</option><option value="DEMO-REQ-020">DEMO-REQ-020 - Datacenter Project Manager</option><option value="DEMO-REQ-024">DEMO-REQ-024 - Technical Program Manager</option>
+      <option value="DEMO-REQ-026">DEMO-REQ-026 - Edge AI Platform Engineer</option>
+    </select></span>
+    <span class="filter-group"><label for="hmFilter">Hiring Manager</label>
+    <select id="hmFilter">
+      <option value="all">All hiring managers</option>
+      <option value="CG">CG</option><option value="DK">DK</option><option value="Stella Fox">Stella Fox</option><option value="BT">BT</option><option value="Luna Scott">Luna Scott</option><option value="QR">QR</option><option value="Amy Hayes">Amy Hayes</option><option value="Elena Chase">Elena Chase</option><option value="GM">GM</option><option value="Faye Miller">Faye Miller</option>
+      <option value="Morgan Chen">Morgan Chen</option>
+    </select></span>
+    <span class="filter-group"><label for="phaseFilter">Req pipeline phase</label>
+    <select id="phaseFilter">
+      <option value="">All phases</option>
+      <option value="Business Review" data-label="Business Review">Business Review (0)</option>
+      <option value="Phone Screen" data-label="Phone Screen">Phone Screen (5)</option>
+      <option value="Interview" data-label="Interview">Interview (9)</option>
+      <option value="Offer" data-label="Offer">Offer (1)</option>
+      <option value="Hired" data-label="Hired">Hired (1)</option>
+</select></span>
+    <span class="filter-group"><label for="candidateFilter">Candidate</label>
+    <select id="candidateFilter">
+      <option value="all">All candidates</option>
+    </select></span>
+    <button type="button" id="candidateClear" class="filter-clear">Clear</button>
+    <span class="filter-count" id="filterCount">15 reqs shown</span>
+  </div>
+<section class="hm-section" data-hm-section="CG">
+    <h2>CG <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-003" data-hm="CG" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-003</span>
+        <span class="req-pos">Data Center Technician</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>CG</strong> · 12 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">12</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">2</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">4</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">6</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">9</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">2</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Mason Blake" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 3 2 0 0" data-sort-mtgs="4" data-sort-schedule="1786687200000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Mason Blake</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">3 No Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 12th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 12th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Ivy Stone" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Ivy Stone</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small"></div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Chloe Rivers" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 4 0 2 0" data-sort-mtgs="4" data-sort-schedule="1788829200000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Chloe Rivers</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">4 No Hire</span> / <span class="v-pending">2 Pending</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Elena Chase</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 8th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 7th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Stella Fox</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 7th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 7th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Nathan Frost</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 4th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 4th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Liam Carter" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 1 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Liam Carter</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-hire">1 Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Ella Hayes" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 4 1 1 0" data-sort-mtgs="4" data-sort-schedule="1788501600000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Ella Hayes</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span> / <span class="v-nohire">4 No Hire</span> / <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 4th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 4th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 4th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 3rd 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Nathan Frost</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 28th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 28th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Ava Brooks" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 2 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Ava Brooks</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">2 No Hire</span> / <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Sofia Reed" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 1 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Sofia Reed</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-hire">1 Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Zoe Bennett" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="1" data-sort-feedback="Interview 0 1 0 0" data-sort-mtgs="4" data-sort-schedule="1789959600000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Zoe Bennett</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Hazel Quinn</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 04:30 PM - 05:30 PM</strong><div class="muted small">Brian Hale, Stella Fox</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Daniel Snow</div></li></ul><ul class="mini-list"><li><strong>Elena Chase</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Caleb Wright" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 0 4 0" data-sort-mtgs="4" data-sort-schedule="1789711200000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Caleb Wright</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">1 No Hire</span> / <span class="v-pending">4 Pending</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Stella Fox</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Owen Lee" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 2 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Owen Lee</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">2 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Noah Kim" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 1 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Noah Kim</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-hire">1 Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Lucas Gray" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="1" data-sort-feedback="Interview 1 0 0 0" data-sort-mtgs="4" data-sort-schedule="1789970400000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Lucas Gray</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Brian Hale, Stella Fox</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 06:00 AM - 07:00 AM</strong><div class="muted small">Elena Chase</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 03:30 PM - 04:30 PM</strong><div class="muted small">Hazel Quinn</div></li></ul><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 16th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="DK">
+    <h2>DK <span>5 reqs</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-005" data-hm="DK" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-005</span>
+        <span class="req-pos">Manufacturing Quality Engineer</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>DK</strong> · 7 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">7</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">1</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">1</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">5</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">2</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">0</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Miles Turner" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 0 3 0 0" data-sort-mtgs="4" data-sort-schedule="1789452000000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Miles Turner</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">3 Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Tessa Cole</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Nina West" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 2 0 0" data-sort-mtgs="4" data-sort-schedule="1789714800000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Nina West</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Tessa Cole</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 16th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Luna Scott" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 0 3 0 0" data-sort-mtgs="4" data-sort-schedule="1789365600000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Luna Scott</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">3 Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Tessa Cole</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Ryan Vale" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 0 3 0 0" data-sort-mtgs="4" data-sort-schedule="1789372800000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Ryan Vale</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">3 Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Tessa Cole</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 8th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 7th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Aria Lane" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1788490800000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Aria Lane</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">🔔 Reminder: no interview invite sent yet</span></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Mia Foster" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Mia Foster</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Evan Cole" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Evan Cole</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">🔔 Reminder: no phone screen invite sent yet</span></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr></tbody>
+    </table>
+  </section>
+<section class="req-card" data-req-id="DEMO-REQ-006" data-hm="DK" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-006</span>
+        <span class="req-pos">Firmware Engineer</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>DK</strong> · 6 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">6</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">3</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">0</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">3</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">3</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">0</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Dylan Shaw" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 2 0 0" data-sort-mtgs="4" data-sort-schedule="1789776000000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Dylan Shaw</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Felix Young</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 19th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Aria Lane" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Aria Lane</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Kai Miller" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Kai Miller</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Felix Young" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Felix Young</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Evan Cole" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 0 3 0 0" data-sort-mtgs="4" data-sort-schedule="1789009200000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Evan Cole</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">3 Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 10th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Felix Young</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 28th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Ruby Clark" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 2 1 0 0" data-sort-mtgs="4" data-sort-schedule="1789686000000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Ruby Clark</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span> / <span class="v-nohire">2 No Hire</span></td>
+      <td class="ctr"><strong>4</strong></td>
+      <td><ul class="mini-list"><li><strong>Felix Young</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 17th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 17th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr></tbody>
+    </table>
+  </section>
+<section class="req-card" data-req-id="DEMO-REQ-008" data-hm="DK" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-008</span>
+        <span class="req-pos">Infrastructure Sourcing Lead</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>DK</strong> · 8 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">8</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">3</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">1</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">4</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">4</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">1</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Clara Wood" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 2 1 0 0" data-sort-mtgs="3" data-sort-schedule="1788854400000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Clara Wood</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span> / <span class="v-nohire">2 No Hire</span></td>
+      <td class="ctr"><strong>3</strong></td>
+      <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 8th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 7th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 27th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Jonah Price" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Jonah Price</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Lily Hart" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Lily Hart</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Max Flynn" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 2 0 0" data-sort-mtgs="3" data-sort-schedule="1788415200000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Max Flynn</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>3</strong></td>
+      <td><ul class="mini-list"><li><strong>Elena Chase</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 3rd 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 2nd 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 2nd 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Adam King" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 2 0 0" data-sort-mtgs="3" data-sort-schedule="1787882400000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Adam King</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>3</strong></td>
+      <td><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 28th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 21st 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 21st 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Theo Grant" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Theo Grant</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Emma Bell" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Emma Bell</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="June Ellis" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="3" data-sort-schedule="1789954200000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">June Ellis</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>3</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 09:30 AM - 10:30 AM</strong><div class="muted small">Daniel Snow</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Brian Hale</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Elena Chase</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+<section class="req-card" data-req-id="DEMO-REQ-014" data-hm="DK" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-014</span>
+        <span class="req-pos">Network Deployment Lead</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>DK</strong> · 2 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">2</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">0</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">0</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">2</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">1</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">0</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Amelia North" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 3 0 1 0" data-sort-mtgs="3" data-sort-schedule="1789455600000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Amelia North</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">3 No Hire</span> / <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><strong>3</strong></td>
+      <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Felix Young</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Daniel Snow" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 2 0 0" data-sort-mtgs="3" data-sort-schedule="1789689600000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Daniel Snow</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>3</strong></td>
+      <td><ul class="mini-list"><li><strong>Felix Young</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 17th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 17th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr></tbody>
+    </table>
+  </section>
+<section class="req-card" data-req-id="DEMO-REQ-016" data-hm="DK" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-016</span>
+        <span class="req-pos">Business Operations Manager</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>DK</strong> · 3 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">3</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">0</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">0</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">3</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">0</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">3</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Brian Hale" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="1" data-sort-feedback="Interview 2 0 0 0" data-sort-mtgs="3" data-sort-schedule="1790042400000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Brian Hale</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">2 No Hire</span></td>
+      <td class="ctr"><strong>3</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Tessa Cole</div></li></ul><ul class="mini-list"><li><strong>Peter Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 16th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Phoebe Grant" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="1" data-sort-feedback="Interview 2 0 0 0" data-sort-mtgs="3" data-sort-schedule="1789956000000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Phoebe Grant</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">2 No Hire</span></td>
+      <td class="ctr"><strong>3</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Tessa Cole</div></li></ul><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 17th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Stella Fox" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="1" data-sort-feedback="Interview 1 1 0 0" data-sort-mtgs="3" data-sort-schedule="1790056800000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Stella Fox</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>3</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Tessa Cole</div></li></ul><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 17th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 15th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="Stella Fox">
+    <h2>Stella Fox <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-020" data-hm="Stella Fox" data-phase="Phone Screen">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-020</span>
+        <span class="req-pos">Datacenter Project Manager</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>Stella Fox</strong> · 4 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">4</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">1</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">3</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">0</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">2</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">2</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Lena Price" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 0 1 0" data-sort-mtgs="1" data-sort-schedule="1789716600000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Lena Price</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><strong>1</strong></td>
+      <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Gavin Moss" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790136000000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Gavin Moss</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 23rd 2026 12:00 PM - 12:30 PM</strong><div class="muted small">Stella Fox</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Isaac West" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Isaac West</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Ada Parker" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1789974000000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Ada Parker</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 21st 2026 03:00 PM - 03:30 PM</strong><div class="muted small">Stella Fox</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="BT">
+    <h2>BT <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-024" data-hm="BT" data-phase="Phone Screen">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-024</span>
+        <span class="req-pos">Technical Program Manager</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>BT</strong> · 1 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">1</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">0</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">1</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">0</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">0</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">0</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Tyler Brook" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 1 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Tyler Brook</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-hire">1 Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>NP</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="Luna Scott">
+    <h2>Luna Scott <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-009" data-hm="Luna Scott" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-009</span>
+        <span class="req-pos">Data Center Inventory &amp; Asset Technician Manager</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>Luna Scott</strong> · 9 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">9</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">5</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">1</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">3</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">3</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">3</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Mila Ross" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="4" data-sort-schedule="1790150400000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Mila Ross</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 23rd 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Luna Scott</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 28th 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Renee Vale</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 28th 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Neil Carter</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Alice Moore" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Alice Moore</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Oscar Quinn" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Oscar Quinn</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Eli Dean" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="4" data-sort-schedule="1789977600000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Eli Dean</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Neil Carter</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 28th 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Renee Vale</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 28th 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Luna Scott</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Logan Wells" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Logan Wells</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Vera Knight" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 1 0 0 0" data-sort-mtgs="1" data-sort-schedule="1788337800000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Vera Knight</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>1</strong></td>
+      <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 2nd 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Bella Fox" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Bella Fox</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Sam Cross" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Sam Cross</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Hugo Pierce" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="4" data-sort-schedule="1790128800000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Hugo Pierce</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 23rd 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Neil Carter</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 23rd 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Luna Scott</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 24th 2026 10:30 AM - 11:30 AM</strong><div class="muted small">Renee Vale</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="QR">
+    <h2>QR <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-013" data-hm="QR" data-phase="Phone Screen">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-013</span>
+        <span class="req-pos">Mechanical Design Engineer</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>QR</strong> · 13 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">13</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">6</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">7</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">0</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">1</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">4</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Victor Reed" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790217000000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Victor Reed</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 24th 2026 10:30 AM - 11:30 AM</strong><div class="muted small">Lucas Gray</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Luke Hale" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Luke Hale</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Sarah Lake" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790130600000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Sarah Lake</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 23rd 2026 10:30 AM - 11:30 AM</strong><div class="muted small">Luna Scott</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Mark River" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 1 0 0 0" data-sort-mtgs="1" data-sort-schedule="1789689600000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Mark River</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>1</strong></td>
+      <td><ul class="mini-list"><li><strong>Lucas Gray</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Rosa Miles" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Rosa Miles</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Ben Archer" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Ben Archer</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Sean Ryder" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Sean Ryder</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Olivia Shore" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Olivia Shore</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">🔔 Reminder: no phone screen invite sent yet</span></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Peter Vale" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790218800000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Peter Vale</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 24th 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Luna Scott</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Hazel Quinn" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Phone Screen 0 0 1 0" data-sort-mtgs="1" data-sort-schedule="1789696800000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Hazel Quinn</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><strong>Phone Screen:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><strong>1</strong></td>
+      <td><ul class="mini-list"><li><strong>Lucas Gray</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Nathan Frost" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790751600000" data-sort-source="referral demo.alias@example.com">
+      <td><a href="#demo-link" target="_blank">Nathan Frost</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 30th 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Lucas Gray</div></li></ul></td>
+      <td>Referral — demo.alias@example.com</td>
+    </tr>
+<tr data-sort-candidate="Cora West" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Cora West</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Tessa Cole" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Tessa Cole</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="Amy Hayes">
+    <h2>Amy Hayes <span>2 reqs</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-001" data-hm="Amy Hayes" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-001</span>
+        <span class="req-pos">Senior Hardware Engineer</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>Amy Hayes</strong> · 4 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">4</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">0</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">0</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">4</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">1</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">1</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Ethan Park" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 0 4 0 0" data-sort-mtgs="5" data-sort-schedule="1787733000000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Ethan Park</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">4 Hire</span></td>
+      <td class="ctr"><strong>5</strong></td>
+      <td><ul class="mini-list"><li><strong>Ian Blake</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 26th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Amy Hayes</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 20th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Renee Vale</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 20th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Neil Carter</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 20th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Nora Chen" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="4" data-sort-schedule="1790062200000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Nora Chen</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(3 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 03:30 PM - 04:30 PM</strong><div class="muted small">Neil Carter</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 24th 2026 12:00 PM - 01:00 PM</strong><div class="muted small">Renee Vale, Amy Hayes</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 25th 2026 01:00 PM - 02:00 PM</strong><div class="muted small">Ian Blake</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Leo Morgan" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 3 1 0 0" data-sort-mtgs="5" data-sort-schedule="1789524000000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Leo Morgan</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span> / <span class="v-nohire">3 No Hire</span></td>
+      <td class="ctr"><strong>5</strong></td>
+      <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 16th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Ian Blake</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 11th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Amy Hayes</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 11th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Renee Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 10th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr>
+<tr data-sort-candidate="Maya Lin" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 3 0 0" data-sort-mtgs="5" data-sort-schedule="1786942800000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Maya Lin</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">3 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><strong>5</strong></td>
+      <td><ul class="mini-list"><li><strong>Renee Vale</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Aug 17th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Ian Blake</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 14th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Amy Hayes</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 11th 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Neil Carter</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 10th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr></tbody>
+    </table>
+  </section>
+<section class="req-card" data-req-id="DEMO-REQ-017" data-hm="Amy Hayes" data-phase="Phone Screen">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-017</span>
+        <span class="req-pos">AI Infrastructure Engineer</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>Amy Hayes</strong> · 4 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">4</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">1</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">3</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">0</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">1</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">3</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Derek Lane" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790058600000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Derek Lane</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 22nd 2026 02:30 PM - 03:15 PM</strong><div class="muted small">Amy Hayes</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Lucy Wells" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790037000000" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Lucy Wells</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 22nd 2026 08:30 AM - 09:00 AM</strong><div class="muted small">Amy Hayes</div></li></ul></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Maria Stone" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790152200000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Maria Stone</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Sep 23rd 2026 04:30 PM - 05:15 PM</strong><div class="muted small">Amy Hayes</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Colin Drake" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Colin Drake</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="Elena Chase">
+    <h2>Elena Chase <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-015" data-hm="Elena Chase" data-phase="Interview">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-015</span>
+        <span class="req-pos">Security Program Manager</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>Elena Chase</strong> · 4 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">4</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">2</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">0</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">2</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">2</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">2</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Elena Chase" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="1" data-sort-feedback="Interview 0 1 0 0" data-sort-mtgs="3" data-sort-schedule="1790056800000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Elena Chase</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">1 Hire</span></td>
+      <td class="ctr"><strong>3</strong> <span class="tiny">(2 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 22nd 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Daniel Snow</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 23rd 2026 08:30 AM - 09:30 AM</strong><div class="muted small">Elena Chase</div></li></ul><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18th 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Jason Field" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Jason Field</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Violet Gray" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Violet Gray</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Kevin Woods" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="4" data-sort-schedule="1789959600000" data-sort-source="job board — eightfold">
+      <td><a href="#demo-link" target="_blank">Kevin Woods</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>4</strong> <span class="tiny">(4 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 21st 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Stella Fox</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Sep 24th 2026 08:00 AM - 09:00 AM</strong><div class="muted small">Derek Lane</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Oct 2nd 2026 08:00 AM - 09:00 AM</strong><div class="muted small">Hazel Quinn</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Interview</span> <strong>Oct 2nd 2026 09:00 AM - 10:00 AM</strong><div class="muted small">Elena Chase</div></li></ul></td>
+      <td>Job Board — Eightfold</td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="GM">
+    <h2>GM <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-007" data-hm="GM" data-phase="Offer">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-007</span>
+        <span class="req-pos">Supply Chain Program Manager</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>GM</strong> · 2 candidate(s)
+        
+        <span class="badge b-noschd" title="No interview-schedule data scraped for this req">no schedule data</span>
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">2</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">0</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">0</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">2</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">1</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">0</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Iris Walker" data-sort-stage="Interview" data-stage="Interview" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 1 2 0 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Iris Walker</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-hire">2 Hire</span> / <span class="v-nohire">1 No Hire</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>KK</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>ZM</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>YL</strong> <span class="badge" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Henry Ford" data-sort-stage="Interview" data-stage="Interview" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Interview 2 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Henry Ford</a></td>
+      <td><span class="stage-pill">Interview</span></td>
+      <td><strong>Interview:</strong> <span class="v-nohire">2 No Hire</span> / <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><ul class="mini-list"><li><strong>YL</strong> <span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d;">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>ZM</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>KK</strong> <span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #f5b5bb;">No Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<section class="hm-section" data-hm-section="Faye Miller">
+    <h2>Faye Miller <span>1 req</span></h2>
+    <section class="req-card" data-req-id="DEMO-REQ-012" data-hm="Faye Miller" data-phase="Phone Screen">
+    <div class="req-head">
+      <div>
+        <span class="req-id">DEMO-REQ-012</span>
+        <span class="req-pos">Reliability Engineer</span>
+      </div>
+      <div class="req-meta">Hiring Manager: <strong>Faye Miller</strong> · 5 candidate(s)
+        
+        
+        · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div>
+    </div>
+    <div class="req-tiles">
+      <button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">5</div><div class="tile-l">All candidates</div></button>
+      <button type="button" class="tile t-br" data-filter="stage:Business Review"><div class="tile-n">4</div><div class="tile-l">Business Review</div></button>
+      <button type="button" class="tile t-ps" data-filter="stage:Phone Screen"><div class="tile-n">1</div><div class="tile-l">Phone Screen</div></button>
+      <button type="button" class="tile t-iv" data-filter="stage:Interview"><div class="tile-n">0</div><div class="tile-l">Interview</div></button>
+      <button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">5</div><div class="tile-l">Has Pending</div></button>
+      <button type="button" class="tile t-up" data-filter="upcoming" title="Candidates with at least one meeting scheduled in the future"><div class="tile-n">1</div><div class="tile-l">Upcoming interview schedule</div></button>
+    </div>
+    <table class="cmb">
+      <thead><tr>
+        <th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th>
+        <th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th>
+        <th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th>
+      </tr></thead>
+      <tbody><tr data-sort-candidate="Eva Brooks" data-sort-stage="Phone Screen" data-stage="Phone Screen" data-has-pending="1" data-awaiting="0" data-upcoming="1" data-sort-feedback="zz 0 0 0 0" data-sort-mtgs="1" data-sort-schedule="1790910000000" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Eva Brooks</a></td>
+      <td><span class="stage-pill">Phone Screen</span></td>
+      <td><span class="muted">—</span></td>
+      <td class="ctr"><strong>1</strong> <span class="tiny">(1 up)</span></td>
+      <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Phone Screen</span> <strong>Oct 2nd 2026 11:00 AM - 11:45 AM</strong><div class="muted small">Faye Miller</div></li></ul></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Finn Morris" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Finn Morris</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr>
+<tr data-sort-candidate="Aaron Stone" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Aaron Stone</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Naomi Lane" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 0 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="zz">
+      <td><a href="#demo-link" target="_blank">Naomi Lane</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td><span class="muted">—</span></td>
+    </tr>
+<tr data-sort-candidate="Irene Blake" data-sort-stage="Business Review" data-stage="Business Review" data-has-pending="1" data-awaiting="0" data-upcoming="0" data-sort-feedback="Business Review 1 0 1 0" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="job board — linkedin">
+      <td><a href="#demo-link" target="_blank">Irene Blake</a></td>
+      <td><span class="stage-pill">Business Review</span></td>
+      <td><strong>Business Review:</strong> <span class="v-nohire">1 No Hire</span> / <span class="v-pending">1 Pending</span></td>
+      <td class="ctr"><span class="muted">0</span></td>
+      <td><span class="muted">No interview activity yet</span></td>
+      <td>Job Board — Cedar Labs</td>
+    </tr></tbody>
+    </table>
+  </section>
+  </section>
+<!-- DEMO-GENERATED:COMBINED_HIRED:START -->
+<section class="hm-section demo-added demo-generated" data-hm-section="Morgan Chen"><h2>Morgan Chen <span>1 req</span></h2><section class="req-card" data-req-id="DEMO-REQ-026" data-hm="Morgan Chen" data-phase="Hired"><div class="req-head"><div><span class="req-id">DEMO-REQ-026</span><span class="req-pos">Edge AI Platform Engineer</span></div><div class="req-meta">Hiring Manager: <strong>Morgan Chen</strong> · 1 candidate · synthetic Hired lifecycle demo · <a href="#demo-link" target="_blank">Open in TA Hub →</a></div></div><div class="req-tiles"><button type="button" class="tile t-all is-active" data-filter="all"><div class="tile-n">1</div><div class="tile-l">All candidates</div></button><button type="button" class="tile t-br" data-filter="stage:Hired"><div class="tile-n">1</div><div class="tile-l">Hired</div></button><button type="button" class="tile t-pd" data-filter="pending"><div class="tile-n">0</div><div class="tile-l">Has Pending</div></button><button type="button" class="tile t-up" data-filter="upcoming"><div class="tile-n">0</div><div class="tile-l">Upcoming interview schedule</div></button></div><table class="cmb"><thead><tr><th><button type="button" class="sort-btn" data-sort-key="candidate">Candidate <span class="sort-mark">↕</span></button></th><th><button type="button" class="sort-btn" data-sort-key="stage">Current stage <span class="sort-mark">↕</span></button></th><th><button type="button" class="sort-btn" data-sort-key="feedback">Feedback Summary <span class="sort-mark">↕</span></button></th><th class="ctr"><button type="button" class="sort-btn" data-sort-key="mtgs">Mtgs <span class="sort-mark">↕</span></button></th><th><button type="button" class="sort-btn" data-sort-key="schedule">Interview schedule <span class="sort-mark">↕</span></button></th><th><button type="button" class="sort-btn" data-sort-key="source">Candidate source <span class="sort-mark">↕</span></button></th></tr></thead><tbody><tr data-sort-candidate="Jamie Wu" data-sort-stage="Hired" data-stage="Hired" data-has-pending="0" data-awaiting="0" data-upcoming="0" data-sort-feedback="Hired 1" data-sort-mtgs="0" data-sort-schedule="0" data-sort-source="synthetic demo"><td><a href="#demo-link" target="_blank">Jamie Wu</a></td><td><span class="stage-pill">Hired</span></td><td><strong>Hired:</strong> <span class="v-hire">Hire confirmed</span></td><td class="ctr"><span class="muted">0</span></td><td><span class="muted">No interviews pending; EC close follow-up required.</span></td><td>Synthetic demo</td></tr></tbody></table></section></section>
+<!-- DEMO-GENERATED:COMBINED_HIRED:END -->
+</main>
+<script>
+  window.__combinedReqHm = {"DEMO-REQ-001":"Amy Hayes","DEMO-REQ-003":"CG","DEMO-REQ-005":"DK","DEMO-REQ-006":"DK","DEMO-REQ-007":"GM","DEMO-REQ-008":"DK","DEMO-REQ-009":"Luna Scott","DEMO-REQ-012":"Faye Miller","DEMO-REQ-013":"QR","DEMO-REQ-014":"DK","DEMO-REQ-015":"Elena Chase","DEMO-REQ-016":"DK","DEMO-REQ-017":"Amy Hayes","DEMO-REQ-020":"Stella Fox","DEMO-REQ-024":"BT"};
+  (() => {
+    const reqFilter = document.getElementById('reqFilter');
+    const hmFilter = document.getElementById('hmFilter');
+    const candidateFilter = document.getElementById('candidateFilter');
+    const candidateClear = document.getElementById('candidateClear');
+    const filterCount = document.getElementById('filterCount');
+    const cards = Array.from(document.querySelectorAll('.req-card'));
+    const hmSections = Array.from(document.querySelectorAll('.hm-section'));
+    const phaseFilter = document.getElementById('phaseFilter');
+    let selectedPhase = '';
+    const numericSortKeys = new Set(['mtgs', 'schedule']);
+    const REQ_HM = window.__combinedReqHm || {};
+    // Per-card stage-tile selection, applied together with the global req/HM/candidate filters.
+    const tileState = new Map();
+
+    function sortValue(row, key) {
+      const value = row.dataset['sort' + key.charAt(0).toUpperCase() + key.slice(1)] || '';
+      return numericSortKeys.has(key) ? Number(value || 0) : value.toLocaleLowerCase();
+    }
+
+    function updateSortMarks(table, activeButton, direction) {
+      table.querySelectorAll('.sort-btn').forEach(button => {
+        const isActive = button === activeButton;
+        button.setAttribute('aria-sort', isActive ? (direction === 'asc' ? 'ascending' : 'descending') : 'none');
+        const mark = button.querySelector('.sort-mark');
+        if (mark) mark.textContent = isActive ? (direction === 'asc' ? '↑' : '↓') : '↕';
+      });
+    }
+
+    function sortTable(table, key, direction, activeButton) {
+      const tbody = table.tBodies[0];
+      const rows = Array.from(tbody.rows);
+      rows.sort((a, b) => {
+        const av = sortValue(a, key);
+        const bv = sortValue(b, key);
+        const result = numericSortKeys.has(key)
+          ? av - bv
+          : String(av).localeCompare(String(bv), undefined, { sensitivity: 'base', numeric: true });
+        return direction === 'asc' ? result : -result;
+      });
+      rows.forEach(row => tbody.appendChild(row));
+      table.dataset.sortKey = key;
+      table.dataset.sortDirection = direction;
+      updateSortMarks(table, activeButton, direction);
+    }
+
+    function initSorting() {
+      document.querySelectorAll('table.cmb').forEach(table => {
+        table.querySelectorAll('.sort-btn').forEach(button => {
+          button.setAttribute('aria-sort', 'none');
+          button.addEventListener('click', () => {
+            const key = button.dataset.sortKey;
+            const nextDirection = table.dataset.sortKey === key && table.dataset.sortDirection === 'asc' ? 'desc' : 'asc';
+            sortTable(table, key, nextDirection, button);
+          });
+        });
+      });
+    }
+
+    // Filters are INDEPENDENT: the Req dropdown always lists every req regardless of the Hiring
+    // Manager selection (and vice-versa), so switching from one req to another never collapses the
+    // list. Selecting a req or HM still filters the rows below — it just doesn't rewrite the other
+    // dropdown's options.
+    let reqOptionCache = null;
+    function syncReqOptions(preferredReq) {
+      if (!reqFilter) return;
+      if (preferredReq != null && Array.from(reqFilter.options).some(o => o.value === preferredReq)) {
+        reqFilter.value = preferredReq;
+      }
+    }
+
+    function applyReqFilter() {
+      const selectedReq = reqFilter.value;
+      const selectedHm = hmFilter ? hmFilter.value : 'all';
+      const selectedCandidate = candidateFilter ? candidateFilter.value : 'all';
+      // Reqs in scope (req + HM + phase only) — this is what feeds the Candidate dropdown.
+      const inScope = cards.filter(card =>
+        (selectedReq === 'all' || card.dataset.reqId === selectedReq) &&
+        (selectedHm === 'all' || card.dataset.hm === selectedHm) &&
+        (selectedPhase === '' || card.dataset.phase === selectedPhase));
+
+      // Rebuild the Candidate dropdown from the reqs currently in scope.
+      const names = new Map();
+      inScope.forEach(card => {
+        Array.from(card.querySelectorAll('table.cmb tbody tr')).forEach(row => {
+          const display = (row.dataset.sortCandidate || '').trim();
+          const key = display.toLowerCase();
+          if (key && !names.has(key)) names.set(key, display);
+        });
+      });
+      if (candidateFilter) {
+        const entries = Array.from(names.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+        const keep = names.has(selectedCandidate) ? selectedCandidate : 'all';
+        candidateFilter.innerHTML = ['<option value="all">All candidates (' + entries.length + ')</option>']
+          .concat(entries.map(([key, display]) =>
+            '<option value="' + key.replace(/"/g, '&quot;') + '">' + display.replace(/</g, '&lt;') + '</option>'))
+          .join('');
+        candidateFilter.value = keep;
+      }
+      const candidateValue = candidateFilter ? candidateFilter.value : 'all';
+
+      let shown = 0;
+      cards.forEach(card => {
+        const scoped = inScope.includes(card);
+        const tile = tileState.get(card) || 'all';
+        let visibleRows = 0;
+        Array.from(card.querySelectorAll('table.cmb tbody tr')).forEach(row => {
+          let show = scoped;
+          if (show && candidateValue !== 'all') {
+            show = (row.dataset.sortCandidate || '').toLowerCase() === candidateValue;
+          }
+          if (show && tile === 'pending') show = row.dataset.hasPending === '1';
+          else if (show && tile === 'upcoming') show = row.dataset.upcoming === '1';
+          else if (show && tile.startsWith('stage:')) show = row.dataset.stage === tile.slice(6);
+          row.hidden = !show;
+          if (show) visibleRows += 1;
+        });
+        // When a candidate is picked, drop req cards that don't contain them.
+        const isVisible = scoped && (candidateValue === 'all' || visibleRows > 0);
+        card.hidden = !isVisible;
+        if (isVisible) shown += 1;
+      });
+      hmSections.forEach(section => {
+        section.hidden = !Array.from(section.querySelectorAll('.req-card')).some(card => !card.hidden);
+      });
+      filterCount.textContent = shown + (shown === 1 ? ' req shown' : ' reqs shown');
+    }
+
+    function initStageFilters() {
+      document.querySelectorAll('.req-card').forEach(card => {
+        const tiles = Array.from(card.querySelectorAll('.tile'));
+        if (!tiles.length || !card.querySelector('table.cmb')) return;
+        tiles.forEach(tile => {
+          tile.addEventListener('click', () => {
+            tiles.forEach(t => t.classList.toggle('is-active', t === tile));
+            tileState.set(card, tile.dataset.filter || 'all');
+            applyReqFilter();
+          });
+        });
+      });
+    }
+
+    function updatePhaseUI() {
+      // live counts of currently in-scope-by-req/HM cards per phase (ignore phase itself)
+      const selectedReq = reqFilter.value;
+      const selectedHm = hmFilter ? hmFilter.value : 'all';
+      const base = cards.filter(card =>
+        (selectedReq === 'all' || card.dataset.reqId === selectedReq) &&
+        (selectedHm === 'all' || card.dataset.hm === selectedHm));
+      if (phaseFilter) {
+        Array.from(phaseFilter.options).forEach(opt => {
+          if (opt.value === '') return;
+          const n = base.filter(c => c.dataset.phase === opt.value).length;
+          opt.textContent = (opt.dataset.label || opt.value) + ' (' + n + ')';
+          opt.disabled = n === 0;
+        });
+        // If the current selection is no longer available, reset to All phases.
+        if (selectedPhase) {
+          const cur = Array.from(phaseFilter.options).find(o => o.value === selectedPhase);
+          if (!cur || cur.disabled) { selectedPhase = ''; phaseFilter.value = ''; }
+          else phaseFilter.value = selectedPhase;
+        } else {
+          phaseFilter.value = '';
+        }
+      }
+    }
+
+    function initPhaseFilter() {
+      if (phaseFilter) phaseFilter.addEventListener('change', () => {
+        selectedPhase = phaseFilter.value;
+        updatePhaseUI();
+        applyReqFilter();
+      });
+    }
+
+    reqFilter.addEventListener('change', () => {
+      // Independent filters: selecting a req filters the rows but does NOT auto-select the HM or
+      // narrow the HM/req dropdowns, so you can switch freely between reqs.
+      updatePhaseUI();
+      applyReqFilter();
+    });
+    if (hmFilter) hmFilter.addEventListener('change', () => { updatePhaseUI(); applyReqFilter(); });
+    if (candidateFilter) candidateFilter.addEventListener('change', applyReqFilter);
+    if (candidateClear) candidateClear.addEventListener('click', () => {
+      if (candidateFilter) candidateFilter.value = 'all';
+      applyReqFilter();
+    });
+    initSorting();
+    initStageFilters();
+    initPhaseFilter();
+    syncReqOptions();
+    updatePhaseUI();
+    applyReqFilter();
+  })();
+</script>
+<!-- DEMO-LOCAL-ASSETS:START --><script src="demo-data.js"></script><script src="demo-email.js"></script><script src="demo-runtime.js"></script><!-- DEMO-LOCAL-ASSETS:END --></body></html>

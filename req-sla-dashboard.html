@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Clarice Official Dashboard</title>
+<script>
+  (() => {
+    const param = new URLSearchParams(window.location.search).get("scoutTheme");
+    const theme =
+      param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+<style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+    }
+    .page { max-width: 1440px; margin: 0 auto; padding: 28px 20px 56px; }
+    .hero, .panel, .card {
+      background: #ffffff;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+    }
+    .hero { padding: 26px; margin-bottom: 16px; }
+    .eyebrow { color: #c2185b; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    h1 { margin: 8px 0 8px; font-size: 30px; line-height: 1.2; }
+    h2 { margin: 0 0 14px; font-size: 22px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    .muted { color: var(--cp-text-muted); }
+    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0 0; }
+    .tab, .refresh, select {
+      border: 1px solid var(--cp-border);
+      background: #ffffff;
+      color: var(--cp-text);
+      border-radius: 0.625rem;
+      padding: 10px 14px;
+      font: inherit;
+    }
+    .tab, .refresh { cursor: pointer; }
+    .tab {
+      --tab-color: var(--cp-accent);
+      background: #ffffff;
+      color: #4a4a4a;
+      border: 2px solid var(--tab-color);
+      font-weight: 700;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tab:hover { background: color-mix(in srgb, var(--tab-color) 12%, #ffffff); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .tab.active { background: var(--tab-color); color: #ffffff; border-color: var(--tab-color); font-weight: 800; box-shadow: 0 3px 10px color-mix(in srgb, var(--tab-color) 35%, transparent); }
+    .tab[data-tab="daily"]    { --tab-color: #f48fb1; }   /* soft pink   */
+    .tab[data-tab="req"]      { --tab-color: #90c8f0; }   /* baby blue   */
+    .tab[data-tab="feedback"] { --tab-color: #a5d6a7; }   /* mint green  */
+    .tab[data-tab="combined"] { --tab-color: #80cbc4; }   /* teal        */
+    .tab[data-tab="alerts"]   { --tab-color: #ffcc99; }   /* peach       */
+    .tab[data-tab="backup"]   { --tab-color: #c8b6e2; }   /* lavender    */
+    .primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); font-weight: 800; }
+    .refresh { margin-left: auto; border: 1px solid var(--cp-border); }
+    .panel { display: none; padding: 22px; margin-bottom: 18px; background: #ffffff; }
+    .panel.active { display: block; }
+    /* Embed mode: when iframed into ta-hub-all-dashboards.html (?embed=1) hide the hero and
+       tab bar so only the selected panel (e.g. Req SLA) shows, flush to the frame edges. */
+    body.embed .hero { display: none; }
+    body.embed .page { padding: 0; }
+    body.embed .panel { margin-bottom: 0; }
+    .summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric, .card { background: #ffffff; border: 2px solid #e5e5e5; border-radius: 0.625rem; padding: 12px; transition: border-color 0.15s, box-shadow 0.15s; }
+    button.metric { cursor: pointer; text-align: left; font: inherit; color: var(--cp-text); }
+    /* Pastel per-tile colors — white bg + colored border, active fills color */
+    button.metric[data-feedback-stage="all"]      { --tile-color: #f48fb1; }
+    button.metric[data-feedback-stage="Review"]   { --tile-color: #90c8f0; }
+    button.metric[data-feedback-stage="Screen"]   { --tile-color: #a5d6a7; }
+    button.metric[data-feedback-stage="Interview"]{ --tile-color: #ffcc99; }
+    button.metric[data-feedback-stage="pending"]  { --tile-color: #c8b6e2; }
+    button.metric[data-feedback-stage="upcoming"] { --tile-color: #90caf9; }
+    button.metric[data-feedback-stage]            { border-color: var(--tile-color); }
+    button.metric[data-feedback-stage]:hover      { box-shadow: 0 2px 8px color-mix(in srgb, var(--tile-color) 30%, transparent); }
+    button.metric[data-feedback-stage].active     { background: var(--tile-color); color: #ffffff; border-color: var(--tile-color); box-shadow: 0 3px 10px color-mix(in srgb, var(--tile-color) 35%, transparent); }
+    button.metric[data-feedback-stage].active .value,
+    button.metric[data-feedback-stage].active .label { color: #ffffff; }
+    button.metric[data-feedback-stage] .value { color: var(--tile-color); }
+    .value { color: #c2185b; font-size: 24px; font-weight: 900; }
+    .label { color: var(--cp-text-muted); font-size: 12px; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .filter-tab { border: 1px solid var(--cp-border); background: #ffffff; color: var(--cp-text); border-radius: 0.625rem; padding: 10px 12px; font: inherit; cursor: pointer; text-align: left; }
+    .filter-tab.active { background: #f48fb1; color: #ffffff; border-color: #f48fb1; font-weight: 800; }
+    .filter-tab .value { display: block; line-height: 1.1; }
+    .filter-tab .label { display: block; color: inherit; opacity: .86; }
+    /* Pastel colour-coded groups (matching the hub's pastel tabs): New App aging (pastel yellow),
+       disposition/close risk (pastel pink), req age (pastel blue). */
+    .filter-tab[data-req-filter="aging10"],
+    .filter-tab[data-req-filter="aging14"] { border: 1.5px solid #fde3a7; background: #fffaf0; }
+    .filter-tab[data-req-filter="oa"],
+    .filter-tab[data-req-filter="hired"] { border: 1.5px solid #f7c6d9; background: #fdf3f7; }
+    .filter-tab[data-req-filter="age30"],
+    .filter-tab[data-req-filter="age60"],
+    .filter-tab[data-req-filter="age90"] { border: 1.5px solid #bcd8f5; background: #f4f9ff; }
+    /* Active state per pastel group — saturated fill + white text so the selected
+       tile stays readable (a plain pastel background left white text invisible). */
+    .filter-tab[data-req-filter="aging10"].active,
+    .filter-tab[data-req-filter="aging14"].active { background: #e8a02e; border-color: #e8a02e; color: #ffffff; }
+    .filter-tab[data-req-filter="oa"].active,
+    .filter-tab[data-req-filter="hired"].active { background: #e26aa0; border-color: #e26aa0; color: #ffffff; }
+    .filter-tab[data-req-filter="age30"].active,
+    .filter-tab[data-req-filter="age60"].active,
+    .filter-tab[data-req-filter="age90"].active { background: #5b9bd5; border-color: #5b9bd5; color: #ffffff; }
+    .filter-tab.active .value, .filter-tab.active .label { color: #ffffff; }
+    select { min-width: 360px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { border-bottom: 1px solid var(--cp-border); padding: 11px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--cp-surface-soft); color: var(--cp-text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; position: sticky; top: 0; z-index: 1; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background: var(--cp-accent-soft); color: var(--cp-text); }
+    th .sort-arrow { display: inline-block; margin-left: 4px; font-size: 11px; opacity: 0.45; color: var(--cp-text-muted); }
+    th .sort-arrow.active { opacity: 1; color: var(--cp-accent); font-weight: 700; font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-flex; align-items: center; border-radius: 0.625rem; padding: 3px 8px; font-size: 12px; font-weight: 700; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); white-space: nowrap; }
+    .badge.hire { background: var(--cp-surface); color: var(--cp-success); border-color: var(--cp-success); }
+    .badge.nohire { background: var(--cp-surface); color: var(--cp-danger); border-color: var(--cp-danger); }
+    .badge.pending, .badge.missing { background: var(--cp-surface); color: var(--cp-warning); border-color: var(--cp-warning); }
+    .badge.neutral { background: var(--cp-surface-soft); color: var(--cp-text-muted); border-color: var(--cp-border); }
+    .hire, .success { color: var(--cp-success); }
+    .nohire, .danger { color: var(--cp-danger); }
+    .pending, .missing, .warning { color: var(--cp-warning); }
+    .progress-summary { font-weight: 400; color: var(--cp-text); }
+    .progress-summary .stage { color: var(--cp-text-muted); font-weight: 700; }
+    .mini-list { margin: 0; padding-left: 18px; }
+    .mini-list li { margin: 0 0 8px; }
+    .nowrap { white-space: nowrap; }
+    .notice { border-left: 4px solid #f48fb1; background: #ffffff; padding: 12px 14px; border-radius: 0.625rem; margin-top: 12px; color: #4a4a4a; }
+    .refresh-card {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border: 2px solid #f48fb1;
+      border-radius: 16px;
+      background: #ffffff;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .refresh-card h3 { color: #242424; margin: 0 0 6px; font-size: 16px; }
+    .refresh-card .menu { margin: 6px 0 0; padding-left: 18px; color: var(--cp-text); font-size: 13px; }
+    .refresh-card .menu li { margin: 2px 0; }
+    .refresh-card .menu code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 12px; background: #ffffff; padding: 1px 5px; border-radius: 4px; }
+    .refresh-card .actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; }
+    .refresh-card .actions a, .refresh-card .actions button {
+      display: block; text-align: center;
+      padding: 10px 14px; border-radius: 0.625rem;
+      font-weight: 700; font: inherit; cursor: pointer;
+      border: 1px solid #f48fb1; text-decoration: none;
+    }
+    .refresh-card .actions .primary { background: #f48fb1; color: #ffffff; }
+    .refresh-card .actions .secondary { background: #ffffff; color: var(--cp-text); border-color: var(--cp-border); }
+    .refresh-card .path { font-family: Consolas, "Courier New", Courier, monospace; font-size: 11px; color: var(--cp-text-muted); word-break: break-all; }
+    .scope-btn {
+      display: inline-block;
+      padding: 8px 14px;
+      border: 1px solid #f48fb1;
+      border-radius: 0.625rem;
+      background: #ffffff;
+      color: #242424;
+      font-weight: 700;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .scope-btn:hover { background: #f48fb1; color: #ffffff; text-decoration: none; }
+    @media(max-width: 900px) { .refresh-card { grid-template-columns: 1fr; } }
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .prompt-box { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 0.625rem; padding: 12px; font-family: Consolas, "Courier New", Courier, monospace; font-size: 13px; white-space: pre-wrap; color: var(--cp-text); }
+    a { color: var(--cp-link); font-weight: 700; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media(max-width: 900px) {
+      .summary, .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      select { min-width: 100%; }
+      .page { padding: 18px 10px 40px; }
+    }
+  </style>
+</head>
+<body class="embed">
+  <main class="page">
+    <section class="panel active" id="req">
+      <h2>TA Hub Req Dashboard</h2>
+      <div class="notice"><strong>Policy Summary:</strong> New Application and GTA Review must move status within 14 days. After OA / Offer Accepted, dispose other active candidates within 5 days. After Hire, close the req in EC. <strong>Pre-Hire and Hired counts must be checked inside each req detail page</strong> from the top status tabs: Applicants, Review, Screen, Interview, Offer, Pre-Hire, Hired.</div>
+      <div class="filter-tabs" aria-label="Req filters">
+        <button class="filter-tab active" type="button" data-req-filter="all"><span class="value">27</span><span class="label">All visible reqs</span></button>
+        <button class="filter-tab" type="button" data-req-filter="pipeline"><span class="value">14</span><span class="label">All flagged reqs</span></button>
+        <button class="filter-tab" type="button" data-req-filter="aging10"><span class="value">3</span><span class="label">New App 7–13d reqs</span></button>
+        <button class="filter-tab" type="button" data-req-filter="aging14"><span class="value">4</span><span class="label">New App ≥14d reqs</span></button>
+        <button class="filter-tab" type="button" data-req-filter="oa"><span class="value">1</span><span class="label">Post-OA undisposed risk</span></button>
+        <button class="filter-tab" type="button" data-req-filter="hired"><span class="value">1</span><span class="label">Hire / EC close</span></button>
+        <button class="filter-tab" type="button" data-req-filter="age30"><span class="value">9</span><span class="label">Req age 30–59d</span></button>
+        <button class="filter-tab" type="button" data-req-filter="age60"><span class="value">1</span><span class="label">Req age 60–89d</span></button>
+        <button class="filter-tab" type="button" data-req-filter="age90"><span class="value">1</span><span class="label">Req age ≥90d</span></button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Priority</th><th>Req ID</th><th>Position</th><th>Req age</th><th>Applicants</th><th>Review</th><th>Screen</th><th>Interview</th><th>Offer</th><th>Pre-Hire</th><th>Hired</th><th>Risk</th><th>Action</th></tr></thead>
+        <tbody id="tbody">
+          <tr data-alerts="pipeline aging10 aging14 age30" data-reqid="DEMO-REQ-003"><td><span class="badge danger">High</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-003">DEMO-REQ-003</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-003">Data Center Technician</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">53d · 30d+</span></td><td>5</td><td>21</td><td>4</td><td>6</td><td>0</td><td>0</td><td>0</td><td>New App ≥14d<br>Req age 30–59d</td><td>New Application SLA: 3 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="pipeline age60" data-reqid="DEMO-REQ-001"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-001">DEMO-REQ-001</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-001">Senior Hardware Engineer</a></td><td><span class="badge" style="background:#ffe8cc;color:#a4520a;border:1px solid #f0b37e">80d · 60–89d</span></td><td>0</td><td>3</td><td>0</td><td>4</td><td>0</td><td>0</td><td>0</td><td>Req age 60–89d</td><td>Review req health and sourcing plan.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-025"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-025">DEMO-REQ-025</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-025">Manufacturing Quality Engineer</a></td><td>2d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-024"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-024">DEMO-REQ-024</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-024">Technical Program Manager</a></td><td>5d</td><td>0</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-023"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-023">DEMO-REQ-023</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-023">Data Center Technician</a></td><td>5d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-022"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-022">DEMO-REQ-022</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-022">Cloud Operations Manager</a></td><td>4d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-021"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-021">DEMO-REQ-021</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-021">Senior Hardware Engineer</a></td><td>6d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="pipeline aging10 aging14" data-reqid="DEMO-REQ-020"><td><span class="badge danger">High</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-020">DEMO-REQ-020</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-020">Datacenter Project Manager</a></td><td>11d</td><td>13</td><td>1</td><td>3</td><td>0</td><td>0</td><td>0</td><td>0</td><td>New App ≥14d</td><td>New Application SLA: 1 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-019"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-019">DEMO-REQ-019</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-019">Data Center Technician</a></td><td>13d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-018"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-018">DEMO-REQ-018</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-018">Thermal Engineer</a></td><td>13d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="pipeline aging10" data-reqid="DEMO-REQ-017"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-017">DEMO-REQ-017</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-017">AI Infrastructure Engineer</a></td><td>13d</td><td>34</td><td>1</td><td>3</td><td>0</td><td>0</td><td>0</td><td>0</td><td>New App 7–13d</td><td>New Application SLA: 1 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-016"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-016">DEMO-REQ-016</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-016">Business Operations Manager</a></td><td>17d</td><td>51</td><td>0</td><td>0</td><td>3</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-015"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-015">DEMO-REQ-015</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-015">Security Program Manager</a></td><td>11d</td><td>166</td><td>2</td><td>0</td><td>2</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="pipeline aging10 aging14" data-reqid="DEMO-REQ-014"><td><span class="badge danger">High</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-014">DEMO-REQ-014</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-014">Network Deployment Lead</a></td><td>17d</td><td>21</td><td>0</td><td>0</td><td>2</td><td>0</td><td>0</td><td>0</td><td>New App ≥14d</td><td>New Application SLA: 1 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-013"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-013">DEMO-REQ-013</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-013">Mechanical Design Engineer</a></td><td>20d</td><td>5</td><td>33</td><td>7</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-012"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-012">DEMO-REQ-012</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-012">Reliability Engineer</a></td><td>20d</td><td>21</td><td>20</td><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-011"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-011">DEMO-REQ-011</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-011">Automation Engineer</a></td><td>24d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>Clear</td><td>No current req-stage alert.</td></tr>
+          <tr data-alerts="pipeline age30" data-reqid="DEMO-REQ-010"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-010">DEMO-REQ-010</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-010">Product Quality Manager</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">41d · 30d+</span></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>Req age 30–59d</td><td>Review req health and sourcing plan.</td></tr>
+          <tr data-alerts="pipeline age30" data-reqid="DEMO-REQ-009"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-009">DEMO-REQ-009</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-009">Principal Silicon Engineer</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">40d · 30d+</span></td><td>0</td><td>17</td><td>1</td><td>3</td><td>0</td><td>0</td><td>0</td><td>Req age 30–59d</td><td>Review req health and sourcing plan.</td></tr>
+          <tr data-alerts="pipeline aging10 age30" data-reqid="DEMO-REQ-008"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-008">DEMO-REQ-008</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-008">Infrastructure Sourcing Lead</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">48d · 30d+</span></td><td>119</td><td>41</td><td>1</td><td>4</td><td>0</td><td>0</td><td>0</td><td>New App 7–13d<br>Req age 30–59d</td><td>New Application SLA: 2 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="pipeline oa age30" data-reqid="DEMO-REQ-007"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-007">DEMO-REQ-007</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-007">Supply Chain Program Manager</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">51d · 30d+</span></td><td>1</td><td>18</td><td>0</td><td>2</td><td>1</td><td>0</td><td>0</td><td>Post-OA undisposed<br>Req age 30–59d</td><td>Dispose or explicitly keep 2 active candidate(s) within 5 days of OA (synthetic offer-accepted fixture).</td></tr>
+          <tr data-alerts="pipeline aging10 aging14 age30" data-reqid="DEMO-REQ-006"><td><span class="badge danger">High</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-006">DEMO-REQ-006</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-006">Firmware Engineer</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">51d · 30d+</span></td><td>32</td><td>48</td><td>0</td><td>3</td><td>0</td><td>0</td><td>0</td><td>New App ≥14d<br>Req age 30–59d</td><td>New Application SLA: 1 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="pipeline aging10 age30" data-reqid="DEMO-REQ-005"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-005">DEMO-REQ-005</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-005">Manufacturing Quality Engineer</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">51d · 30d+</span></td><td>91</td><td>53</td><td>1</td><td>5</td><td>0</td><td>0</td><td>0</td><td>New App 7–13d<br>Req age 30–59d</td><td>New Application SLA: 2 candidate(s) aging; move status within 14 days.</td></tr>
+          <tr data-alerts="pipeline age30" data-reqid="DEMO-REQ-004"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-004">DEMO-REQ-004</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-004">Technical Program Manager</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">52d · 30d+</span></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>Req age 30–59d</td><td>Review req health and sourcing plan.</td></tr>
+          <tr data-alerts="pipeline age30" data-reqid="DEMO-REQ-002"><td><span class="badge warning">Medium</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-002">DEMO-REQ-002</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-002">Cloud Operations Manager</a></td><td><span class="badge" style="background:#fff4ce;color:#8a6d00;border:1px solid #f2d98d">45d · 30d+</span></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>Req age 30–59d</td><td>Review req health and sourcing plan.</td></tr>
+          <tr data-alerts="pipeline hired age90" data-reqid="DEMO-REQ-026"><td><span class="badge danger">High</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-026">DEMO-REQ-026</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-026">Edge AI Platform Engineer</a></td><td><span class="badge" style="background:#fde7e9;color:#a80000;border:1px solid #d13438">96d · 90d+</span></td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>Hire / EC close<br>Req age ≥90d</td><td>Close req in EC and confirm downstream handoff. <a href="#demo-link" target="_blank" rel="noopener" title="Open local EC mock for DEMO-REQ-026" class="demo-ec-link">Open EC list</a></td></tr>
+          <tr data-alerts="" data-reqid="DEMO-REQ-027"><td><span class="badge success">Clear</span></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-027">DEMO-REQ-027</a></td><td><a href="#demo-link" target="_blank" rel="noopener" title="Open local TA Hub mock for DEMO-REQ-027">Pre-Approval Capacity Planner</a> <span class="badge neutral">Pre-Approval</span></td><td>12d</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>Pre-Approval</td><td>Awaiting pre-approval; no sourcing until approved. <a href="#demo-link" target="_blank" rel="noopener" title="Open local EC mock for DEMO-REQ-027" class="demo-ec-link">Open EC list</a></td></tr>
+        </tbody>
+      </table></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>SLA Req</th><th>Position</th><th>Stage source</th><th>7&ndash;13 days people</th><th>&ge;14 days people</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-003</a></td><td>Data Center Technician</td><td>New Application only</td><td><span class="badge warning">0</span></td><td><span class="badge danger">3</span></td><td>Synthetic candidate 1: 16d<br>Synthetic candidate 2: 16d<br>Synthetic candidate 3: 16d</td></tr>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-020</a></td><td>Datacenter Project Manager</td><td>New Application only</td><td><span class="badge warning">0</span></td><td><span class="badge danger">1</span></td><td>Synthetic candidate 1: 18d</td></tr>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-017</a></td><td>AI Infrastructure Engineer</td><td>New Application only</td><td><span class="badge warning">1</span></td><td><span class="badge danger">0</span></td><td>Synthetic candidate 1: 8d</td></tr>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-014</a></td><td>Network Deployment Lead</td><td>New Application only</td><td><span class="badge warning">0</span></td><td><span class="badge danger">1</span></td><td>Synthetic candidate 1: 15d</td></tr>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-008</a></td><td>Infrastructure Sourcing Lead</td><td>New Application only</td><td><span class="badge warning">2</span></td><td><span class="badge danger">0</span></td><td>Synthetic candidate 1: 12d<br>Synthetic candidate 2: 12d</td></tr>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-006</a></td><td>Firmware Engineer</td><td>New Application only</td><td><span class="badge warning">0</span></td><td><span class="badge danger">1</span></td><td>Synthetic candidate 1: 14d</td></tr>
+          <tr><td><a href="#demo-link" target="_blank" rel="noopener">DEMO-REQ-005</a></td><td>Manufacturing Quality Engineer</td><td>New Application only</td><td><span class="badge warning">2</span></td><td><span class="badge danger">0</span></td><td>Synthetic candidate 1: 9d<br>Synthetic candidate 2: 9d</td></tr>
+        </tbody>
+      </table></div>
+      <div class="notice"><strong>SLA rule:</strong> 7&ndash;13 days is early warning; &ge;14 days is overdue. Counts are candidate/person counts in <strong>New Application only</strong>. GTA Review / Review is excluded.</div>
+      <div class="cards">
+        <div class="card"><h3>Pre-Hire / Hired detail rule</h3><p>Do not rely on the My Requisitions homepage for Pre-Hire or Hired. Open each req detail page and read the top status row counts. If Pre-Hire &gt; 0, check disposition risk. If Hired &gt; 0, alert to close the req in EC.</p></div>
+        <div class="card"><h3>Feedback path</h3><p>For Business Review, open Review tab and choose the <strong>Business Review</strong> view only. Business Review includes Pending + Completed; exclude GTA Review. Business Review column should show only the decision: Yes - Advance to Screen, No - not qualified, or Pending.</p></div>
+      </div>
+    </section>
+  </main>
+  <script>document.addEventListener('DOMContentLoaded',function(){const tabs=[...document.querySelectorAll('[data-req-filter]')],rows=[...document.querySelectorAll('#req tbody tr[data-alerts]')],sla=document.querySelectorAll('#req .table-wrap')[1];tabs.forEach(tab=>tab.addEventListener('click',function(){const f=tab.dataset.reqFilter;tabs.forEach(t=>t.classList.toggle('active',t===tab));rows.forEach(r=>{r.hidden=f!=='all'&&!r.dataset.alerts.split(' ').includes(f);});if(sla)sla.hidden=!['all','aging10','aging14'].includes(f);}));});</script>
+<!-- DEMO-LOCAL-ASSETS:START --><script src="demo-data.js"></script><script src="demo-email.js"></script><script src="demo-runtime.js"></script><script src="demo-sla.js"></script><!-- DEMO-LOCAL-ASSETS:END --></body>
+</html>

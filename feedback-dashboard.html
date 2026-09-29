@@ -1,0 +1,1298 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TA Hub Feedback Dashboard</title>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = Array.from(document.querySelectorAll('.tab'));
+      const panels = Array.from(document.querySelectorAll('.panel'));
+      const refreshWrapper = document.getElementById('refresh-wrapper');
+      // Embedding support: ta-hub-all-dashboards.html iframes this page with
+      // ?tab=req&embed=1 to show only one panel (SLA) with the hero/tab bar hidden.
+      const params = new URLSearchParams(window.location.search);
+      const wantTab = params.get('tab');
+      const embed = params.get('embed') === '1';
+      if (embed) document.body.classList.add('embed');
+      function activate(tabName) {
+        const target = tabs.find((t) => t.dataset.tab === tabName);
+        if (!target) return false;
+        tabs.forEach((item) => item.classList.toggle('active', item === target));
+        panels.forEach((panel) => panel.classList.toggle('active', panel.id === tabName));
+        syncRefreshVisibility(tabName);
+        return true;
+      }
+      function syncRefreshVisibility(activeTab) {
+        if (refreshWrapper) refreshWrapper.style.display = activeTab === 'feedback' ? '' : 'none';
+      }
+      // Set initial tab: URL ?tab= wins, else the currently-active tab.
+      const initialActive = (wantTab && tabs.some((t) => t.dataset.tab === wantTab))
+        ? wantTab
+        : (document.querySelector('.tab.active')?.dataset.tab) || 'daily';
+      activate(initialActive);
+      tabs.forEach((tab) => tab.addEventListener('click', () => {
+        tabs.forEach((item) => item.classList.toggle('active', item === tab));
+        panels.forEach((panel) => panel.classList.toggle('active', panel.id === tab.dataset.tab));
+        syncRefreshVisibility(tab.dataset.tab);
+      }));
+      const reqFilterTabs = Array.from(document.querySelectorAll('[data-req-filter]'));
+      const reqRows = Array.from(document.querySelectorAll('#req tbody tr[data-alerts]'));
+      reqFilterTabs.forEach((filterTab) => filterTab.addEventListener('click', () => {
+        const filter = filterTab.dataset.reqFilter;
+        reqFilterTabs.forEach((item) => item.classList.toggle('active', item === filterTab));
+        reqRows.forEach((row) => {
+          row.hidden = filter !== 'all' && !row.dataset.alerts.split(' ').includes(filter);
+        });
+      }));
+
+      // --- Feedback dashboard filters (new layout) ---
+      let activeFeedbackStage = 'all';
+      function selectedFeedbackReq() {
+        return document.getElementById('feedbackReq')?.value || 'all';
+      }
+      function rowMatchesStage(row, stage) {
+        if (stage === 'all') return true;
+        if (stage === 'pending') {
+          return row.dataset.pending === '1';
+        }
+        if (stage === 'upcoming') {
+          return row.dataset.upcoming === '1';
+        }
+        if (stage === 'Review' || stage === 'Screen' || stage === 'Interview') {
+          return row.dataset.stage === stage;
+        }
+        return true;
+      }
+      function applyFeedbackFilters() {
+        const reqValue = selectedFeedbackReq();
+        const selectEl = document.getElementById('feedbackCandidate');
+        const selectedCandidate = (selectEl?.value || 'all').toLowerCase();
+        const decisionEl = document.getElementById('feedbackDecision');
+        const decisionValue = decisionEl?.value || 'all';
+        const eligible = new Map();
+        function rowDecisionMatch(row) {
+          if (decisionValue === 'all') return true;
+          const summary = (row.children[7]?.textContent || '').toLowerCase();
+          if (decisionValue === 'hire') return /\d+\s*hire(?!\s*\/)/.test(summary) || /:\s*\d+\s*hire/.test(summary);
+          if (decisionValue === 'no-hire') return /\d+\s*no\s*hire/.test(summary);
+          if (decisionValue === 'pending') return /\d+\s*pending/.test(summary);
+          if (decisionValue === 'no-form') return /not sent|^—$|^-$/.test(summary.trim());
+          return true;
+        }
+        document.querySelectorAll('#feedbackTable tbody tr').forEach((row) => {
+          const reqMatch = reqValue === 'all' || row.dataset.req === reqValue;
+          const stageMatch = rowMatchesStage(row, activeFeedbackStage);
+          const candidateMatch = selectedCandidate === 'all' || (row.dataset.candidate || '') === selectedCandidate;
+          const decisionMatch = rowDecisionMatch(row);
+          row.style.display = reqMatch && stageMatch && candidateMatch && decisionMatch ? '' : 'none';
+          if (reqMatch && stageMatch && decisionMatch) {
+            const key = row.dataset.candidate || '';
+            const display = row.querySelector('td:nth-child(4) strong')?.textContent || key;
+            if (key && !eligible.has(key)) eligible.set(key, display);
+          }
+        });
+        const tiles = window.__feedbackTilesByReq && window.__feedbackTilesByReq[reqValue];
+        if (tiles) {
+          const set = (k, v) => { const el = document.querySelector('[data-tile="' + k + '"]'); if (el) el.textContent = v; };
+          set('total', tiles.total); set('br', tiles.br); set('ps', tiles.ps); set('iv', tiles.iv); set('pending', tiles.pending); set('upcoming', tiles.upcoming);
+        }
+        if (selectEl) {
+          const entries = [...eligible.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+          const current = selectEl.value;
+          const opts = ['<option value="all">All candidates (' + entries.length + ')</option>']
+            .concat(entries.map(([key, display]) => '<option value="' + key.replace(/"/g, '&quot;') + '">' + display.replace(/</g, '&lt;') + '</option>'));
+          selectEl.innerHTML = opts.join('');
+          if (current !== 'all' && eligible.has(current)) {
+            selectEl.value = current;
+          } else if (current !== 'all') {
+            selectEl.value = 'all';
+            document.querySelectorAll('#feedbackTable tbody tr').forEach((row) => {
+              const reqMatch = reqValue === 'all' || row.dataset.req === reqValue;
+              const stageMatch = rowMatchesStage(row, activeFeedbackStage);
+              const decisionMatch = rowDecisionMatch(row);
+              row.style.display = reqMatch && stageMatch && decisionMatch ? '' : 'none';
+            });
+          }
+        }
+      }
+      document.getElementById('feedbackReq')?.addEventListener('change', applyFeedbackFilters);
+      document.getElementById('feedbackCandidate')?.addEventListener('change', applyFeedbackFilters);
+      document.getElementById('feedbackCandidateClear')?.addEventListener('click', () => {
+        const el = document.getElementById('feedbackCandidate');
+        if (el) { el.value = 'all'; applyFeedbackFilters(); }
+      });
+      document.querySelectorAll('[data-feedback-stage]').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeFeedbackStage = button.dataset.feedbackStage;
+          document.querySelectorAll('[data-feedback-stage]').forEach((item) => item.classList.toggle('active', item === button));
+          applyFeedbackFilters();
+        });
+      });
+      applyFeedbackFilters();
+
+      // Sortable Feedback table headers
+      (function initFeedbackSort() {
+        const table = document.getElementById('feedbackTable');
+        if (!table) return;
+        const headers = Array.from(table.querySelectorAll('thead th'));
+        const state = { col: -1, dir: 1 };
+        function getKey(row, idx) {
+          const cell = row.children[idx];
+          if (!cell) return '';
+          const txt = (cell.textContent || '').trim();
+          if (idx === 7) {
+            const m = txt.match(/(\d+)\s*Hire/i);
+            const hire = m ? parseInt(m[1], 10) : -1;
+            const noHire = (txt.match(/(\d+)\s*No\s*Hire/i) || [, '0'])[1];
+            const pending = (txt.match(/(\d+)\s*Pending/i) || [, '0'])[1];
+            return hire * 1000000 + parseInt(noHire, 10) * 1000 + parseInt(pending, 10);
+          }
+          if (idx === 0) return parseInt(txt, 10) || 0;
+          if (idx === 3) return (row.dataset.candidate || txt).toLowerCase();
+          return txt.toLowerCase();
+        }
+        function renderHeader(h, i) {
+          const base = h.dataset.baseHtml;
+          let arrow;
+          if (state.col === i) {
+            arrow = '<span class="sort-arrow active">' + (state.dir === 1 ? '▲' : '▼') + '</span>';
+          } else {
+            arrow = '<span class="sort-arrow">⇅</span>';
+          }
+          h.innerHTML = base + ' ' + arrow;
+        }
+        function sort(idx) {
+          const tbody = table.querySelector('tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {
+            const ka = getKey(a, idx), kb = getKey(b, idx);
+            if (ka < kb) return -1 * state.dir;
+            if (ka > kb) return 1 * state.dir;
+            return 0;
+          });
+          rows.forEach((r) => tbody.appendChild(r));
+        }
+        headers.forEach((th, idx) => {
+          th.classList.add('sortable');
+          th.title = 'Click to sort';
+          th.dataset.baseHtml = th.innerHTML;
+          renderHeader(th, idx);
+          th.addEventListener('click', () => {
+            if (state.col === idx) state.dir *= -1;
+            else { state.col = idx; state.dir = idx === 7 ? -1 : 1; }
+            headers.forEach((h, i) => renderHeader(h, i));
+            sort(idx);
+          });
+        });
+      })();
+
+      // Decision filter
+      document.getElementById('feedbackDecision')?.addEventListener('change', applyFeedbackFilters);
+
+      // Refresh button — reload page so the latest saved file is shown
+      document.querySelectorAll('[data-refresh]').forEach((btn) => btn.addEventListener('click', () => location.reload()));
+    });
+  </script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: var(--cp-text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+    }
+    .page { max-width: 1440px; margin: 0 auto; padding: 28px 20px 56px; }
+    .hero, .panel, .card {
+      background: #ffffff;
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: 0 0 2px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.14);
+    }
+    .hero { padding: 26px; margin-bottom: 16px; }
+    .eyebrow { color: #c2185b; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    h1 { margin: 8px 0 8px; font-size: 30px; line-height: 1.2; }
+    h2 { margin: 0 0 14px; font-size: 22px; }
+    h3 { margin: 0 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    .muted { color: var(--cp-text-muted); }
+    .tabs { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0 0; }
+    .tab, .refresh, select {
+      border: 1px solid var(--cp-border);
+      background: #ffffff;
+      color: var(--cp-text);
+      border-radius: 0.625rem;
+      padding: 10px 14px;
+      font: inherit;
+    }
+    .tab, .refresh { cursor: pointer; }
+    .tab {
+      --tab-color: var(--cp-accent);
+      background: #ffffff;
+      color: #4a4a4a;
+      border: 2px solid var(--tab-color);
+      font-weight: 700;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tab:hover { background: color-mix(in srgb, var(--tab-color) 12%, #ffffff); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .tab.active { background: var(--tab-color); color: #ffffff; border-color: var(--tab-color); font-weight: 800; box-shadow: 0 3px 10px color-mix(in srgb, var(--tab-color) 35%, transparent); }
+    .tab[data-tab="daily"]    { --tab-color: #f48fb1; }   /* soft pink   */
+    .tab[data-tab="req"]      { --tab-color: #90c8f0; }   /* baby blue   */
+    .tab[data-tab="feedback"] { --tab-color: #a5d6a7; }   /* mint green  */
+    .tab[data-tab="combined"] { --tab-color: #80cbc4; }   /* teal        */
+    .tab[data-tab="alerts"]   { --tab-color: #ffcc99; }   /* peach       */
+    .tab[data-tab="backup"]   { --tab-color: #c8b6e2; }   /* lavender    */
+    .primary { background: var(--cp-accent); color: var(--cp-accent-fg); border-color: var(--cp-accent); font-weight: 800; }
+    .refresh { margin-left: auto; border: 1px solid var(--cp-border); }
+    .panel { display: none; padding: 22px; margin-bottom: 18px; background: #ffffff; }
+    .panel.active { display: block; }
+    /* Embed mode: when iframed into ta-hub-all-dashboards.html (?embed=1) hide the hero and
+       tab bar so only the selected panel (e.g. Req SLA) shows, flush to the frame edges. */
+    body.embed .hero { display: none; }
+    body.embed .page { padding: 0; }
+    body.embed .panel { margin-bottom: 0; }
+    .summary { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric, .card { background: #ffffff; border: 2px solid #e5e5e5; border-radius: 0.625rem; padding: 12px; transition: border-color 0.15s, box-shadow 0.15s; }
+    button.metric { cursor: pointer; text-align: left; font: inherit; color: var(--cp-text); }
+    /* Pastel per-tile colors — white bg + colored border, active fills color */
+    button.metric[data-feedback-stage="all"]      { --tile-color: #f48fb1; }
+    button.metric[data-feedback-stage="Review"]   { --tile-color: #90c8f0; }
+    button.metric[data-feedback-stage="Screen"]   { --tile-color: #a5d6a7; }
+    button.metric[data-feedback-stage="Interview"]{ --tile-color: #ffcc99; }
+    button.metric[data-feedback-stage="pending"]  { --tile-color: #c8b6e2; }
+    button.metric[data-feedback-stage="upcoming"] { --tile-color: #90caf9; }
+    button.metric[data-feedback-stage]            { border-color: var(--tile-color); }
+    button.metric[data-feedback-stage]:hover      { box-shadow: 0 2px 8px color-mix(in srgb, var(--tile-color) 30%, transparent); }
+    button.metric[data-feedback-stage].active     { background: var(--tile-color); color: #ffffff; border-color: var(--tile-color); box-shadow: 0 3px 10px color-mix(in srgb, var(--tile-color) 35%, transparent); }
+    button.metric[data-feedback-stage].active .value,
+    button.metric[data-feedback-stage].active .label { color: #ffffff; }
+    button.metric[data-feedback-stage] .value { color: var(--tile-color); }
+    .value { color: #c2185b; font-size: 24px; font-weight: 900; }
+    .label { color: var(--cp-text-muted); font-size: 12px; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 14px 0; }
+    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .filter-tab { border: 1px solid var(--cp-border); background: #ffffff; color: var(--cp-text); border-radius: 0.625rem; padding: 10px 12px; font: inherit; cursor: pointer; text-align: left; }
+    .filter-tab.active { background: #f48fb1; color: #ffffff; border-color: #f48fb1; font-weight: 800; }
+    .filter-tab .value { display: block; line-height: 1.1; }
+    .filter-tab .label { display: block; color: inherit; opacity: .86; }
+    select { min-width: 360px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--cp-border); border-radius: 16px; background: var(--cp-surface); margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 980px; }
+    th, td { border-bottom: 1px solid var(--cp-border); padding: 11px 10px; text-align: left; vertical-align: top; }
+    th { background: var(--cp-surface-soft); color: var(--cp-text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; position: sticky; top: 0; z-index: 1; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background: var(--cp-accent-soft); color: var(--cp-text); }
+    th .sort-arrow { display: inline-block; margin-left: 4px; font-size: 11px; opacity: 0.45; color: var(--cp-text-muted); }
+    th .sort-arrow.active { opacity: 1; color: var(--cp-accent); font-weight: 700; font-size: 12px; }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-flex; align-items: center; border-radius: 0.625rem; padding: 3px 8px; font-size: 12px; font-weight: 700; border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); white-space: nowrap; }
+    .badge.hire { background: var(--cp-surface); color: var(--cp-success); border-color: var(--cp-success); }
+    .badge.nohire { background: var(--cp-surface); color: var(--cp-danger); border-color: var(--cp-danger); }
+    .badge.pending, .badge.missing { background: var(--cp-surface); color: var(--cp-warning); border-color: var(--cp-warning); }
+    .badge.neutral { background: var(--cp-surface-soft); color: var(--cp-text-muted); border-color: var(--cp-border); }
+    .hire, .success { color: var(--cp-success); }
+    .nohire, .danger { color: var(--cp-danger); }
+    .pending, .missing, .warning { color: var(--cp-warning); }
+    .progress-summary { font-weight: 400; color: var(--cp-text); }
+    .progress-summary .stage { color: var(--cp-text-muted); font-weight: 700; }
+    .mini-list { margin: 0; padding-left: 18px; }
+    .mini-list li { margin: 0 0 8px; }
+    .nowrap { white-space: nowrap; }
+    .notice { border-left: 4px solid #f48fb1; background: #ffffff; padding: 12px 14px; border-radius: 0.625rem; margin-top: 12px; color: #4a4a4a; }
+    .refresh-card {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border: 2px solid #f48fb1;
+      border-radius: 16px;
+      background: #ffffff;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .refresh-card h3 { color: #242424; margin: 0 0 6px; font-size: 16px; }
+    .refresh-card .menu { margin: 6px 0 0; padding-left: 18px; color: var(--cp-text); font-size: 13px; }
+    .refresh-card .menu li { margin: 2px 0; }
+    .refresh-card .menu code { font-family: Consolas, "Courier New", Courier, monospace; font-size: 12px; background: #ffffff; padding: 1px 5px; border-radius: 4px; }
+    .refresh-card .actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; min-width: 200px; }
+    .refresh-card .actions a, .refresh-card .actions button {
+      display: block; text-align: center;
+      padding: 10px 14px; border-radius: 0.625rem;
+      font-weight: 700; font: inherit; cursor: pointer;
+      border: 1px solid #f48fb1; text-decoration: none;
+    }
+    .refresh-card .actions .primary { background: #f48fb1; color: #ffffff; }
+    .refresh-card .actions .secondary { background: #ffffff; color: var(--cp-text); border-color: var(--cp-border); }
+    .refresh-card .path { font-family: Consolas, "Courier New", Courier, monospace; font-size: 11px; color: var(--cp-text-muted); word-break: break-all; }
+    .scope-btn {
+      display: inline-block;
+      padding: 8px 14px;
+      border: 1px solid #f48fb1;
+      border-radius: 0.625rem;
+      background: #ffffff;
+      color: #242424;
+      font-weight: 700;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .scope-btn:hover { background: #f48fb1; color: #ffffff; text-decoration: none; }
+    @media(max-width: 900px) { .refresh-card { grid-template-columns: 1fr; } }
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+    .prompt-box { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 0.625rem; padding: 12px; font-family: Consolas, "Courier New", Courier, monospace; font-size: 13px; white-space: pre-wrap; color: var(--cp-text); }
+    a { color: var(--cp-link); font-weight: 700; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    @media(max-width: 900px) {
+      .summary, .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      select { min-width: 100%; }
+      .page { padding: 18px 10px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--cp-border);background:var(--cp-bg-elevated);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0;font-size:1.35rem;color:var(--cp-text);">TA Hub Feedback Dashboard</h1>
+      <div class="muted small" style="margin-top:0.25rem;">Standalone view. Same data as the official dashboard's Feedback tab.</div>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+      <button type="button" onclick="location.reload();" style="padding:0.45rem 0.9rem;border:1px solid var(--cp-border);border-radius:0.5rem;background:var(--cp-surface);color:var(--cp-text);cursor:pointer;font-size:0.9rem;">Reload Page</button>
+    </div>
+  </header>
+
+<main style="padding:1.25rem 1.5rem;">
+
+<section class="panel active" id="feedback">
+      <h2>Feedback Dashboard</h2>
+      <div class="notice" style="background:#fff3e0;border:1px solid #f59e0b;color:#7a4a00;"><strong>🔄 Heads up:</strong> after a scrape finishes, <strong>reload this page (press F5)</strong> to see the new data. The numbers below reflect the last scrape only — <span class="muted">scraped 2026-09-20T13:01:40.893Z</span>.</div>
+      <div class="notice"><strong>Method:</strong> Each candidate's drawer Feedback tab opened and parsed by form type. Entries routed to columns by feedback form name (not pipeline stage). Quick Notes → Business Review column. Stage tile counts = candidates in that Eightfold stage tab (per saved rule). Scraped 2026-09-20T13:01:40.893Z.</div>
+      <div class="controls"><label for="feedbackReq"><strong>Req filter</strong></label><select id="feedbackReq"><option value="all">All reqs</option><option value="DEMO-REQ-001">DEMO-REQ-001 - Senior Hardware Engineer</option><option value="DEMO-REQ-002">DEMO-REQ-002 - Cloud Operations Manager</option><option value="DEMO-REQ-003">DEMO-REQ-003 - Data Center Technician</option><option value="DEMO-REQ-004">DEMO-REQ-004 - Technical Program Manager</option><option value="DEMO-REQ-005">DEMO-REQ-005 - Manufacturing Quality Engineer</option><option value="DEMO-REQ-006">DEMO-REQ-006 - Firmware Engineer</option><option value="DEMO-REQ-007">DEMO-REQ-007 - Supply Chain Program Manager</option><option value="DEMO-REQ-008">DEMO-REQ-008 - Infrastructure Sourcing Lead</option><option value="DEMO-REQ-009">DEMO-REQ-009 - Data Center Inventory &amp; Asset Technician Manager</option><option value="DEMO-REQ-010">DEMO-REQ-010 - Product Quality Manager</option><option value="DEMO-REQ-011">DEMO-REQ-011 - Automation Engineer</option><option value="DEMO-REQ-012">DEMO-REQ-012 - Reliability Engineer</option><option value="DEMO-REQ-013">DEMO-REQ-013 - Mechanical Design Engineer</option><option value="DEMO-REQ-014">DEMO-REQ-014 - Network Deployment Lead</option><option value="DEMO-REQ-015">DEMO-REQ-015 - Security Program Manager</option><option value="DEMO-REQ-016">DEMO-REQ-016 - Business Operations Manager</option><option value="DEMO-REQ-017">DEMO-REQ-017 - AI Infrastructure Engineer</option><option value="DEMO-REQ-018">DEMO-REQ-018 - Thermal Engineer</option><option value="DEMO-REQ-019">DEMO-REQ-019 - Data Center Technician</option><option value="DEMO-REQ-020">DEMO-REQ-020 - Datacenter Project Manager</option><option value="DEMO-REQ-021">DEMO-REQ-021 - Senior Hardware Engineer</option><option value="DEMO-REQ-022">DEMO-REQ-022 - Cloud Operations Manager</option><option value="DEMO-REQ-023">DEMO-REQ-023 - Data Center Technician</option><option value="DEMO-REQ-024">DEMO-REQ-024 - Technical Program Manager</option><option value="DEMO-REQ-025">DEMO-REQ-025 - Manufacturing Quality Engineer</option></select>
+        <label for="feedbackCandidate" style="margin-left:1rem;"><strong>Candidate</strong></label>
+        <select id="feedbackCandidate" style="min-width:240px;padding:0.4rem 0.6rem;border:1px solid var(--cp-border);border-radius:0.5rem;background:var(--cp-surface);color:var(--cp-text);">
+          <option value="all">All candidates</option>
+        </select>
+        <button type="button" id="feedbackCandidateClear" style="margin-left:0.5rem;padding:0.4rem 0.8rem;border:1px solid var(--cp-border);border-radius:0.5rem;background:var(--cp-surface);color:var(--cp-text);cursor:pointer;">Clear</button>
+        <label for="feedbackDecision" style="margin-left:1rem;"><strong>Decision</strong></label>
+        <select id="feedbackDecision" style="min-width:160px;padding:0.4rem 0.6rem;border:1px solid var(--cp-border);border-radius:0.5rem;background:var(--cp-surface);color:var(--cp-text);">
+          <option value="all">All decisions</option>
+          <option value="hire">Has Hire</option>
+          <option value="no-hire">Has No Hire</option>
+          <option value="pending">Has Pending</option>
+          <option value="no-form">No form sent</option>
+        </select>
+      </div>
+      <div class="summary">
+        <button class="metric active" type="button" data-feedback-stage="all"><div class="value" data-tile="total">84</div><div class="label">All candidates</div></button>
+        <button class="metric" type="button" data-feedback-stage="Review"><div class="value" data-tile="br">28</div><div class="label">Business Review</div><div class="muted small" data-stagetime="br" style="min-height:14px;"></div></button>
+        <button class="metric" type="button" data-feedback-stage="Screen"><div class="value" data-tile="ps">22</div><div class="label">Phone Screen</div><div class="muted small" data-stagetime="ps" style="min-height:14px;"></div></button>
+        <button class="metric" type="button" data-feedback-stage="Interview"><div class="value" data-tile="iv">34</div><div class="label">Interview</div><div class="muted small" data-stagetime="iv" style="min-height:14px;"></div></button>
+        <button class="metric" type="button" data-feedback-stage="pending"><div class="value" data-tile="pending">35</div><div class="label">Has Pending</div></button>
+        <button class="metric" type="button" data-feedback-stage="upcoming"><div class="value" data-tile="upcoming">11</div><div class="label">Upcoming Interview</div></button>
+      </div>
+      <script>window.__feedbackTilesByReq = {"DEMO-REQ-001":{"total":4,"br":0,"ps":0,"iv":4,"pending":1,"upcoming":1},"DEMO-REQ-003":{"total":12,"br":2,"ps":4,"iv":6,"pending":9,"upcoming":2},"DEMO-REQ-005":{"total":7,"br":1,"ps":1,"iv":5,"pending":2,"upcoming":0},"DEMO-REQ-006":{"total":6,"br":3,"ps":0,"iv":3,"pending":3,"upcoming":0},"DEMO-REQ-007":{"total":2,"br":0,"ps":0,"iv":2,"pending":1,"upcoming":0},"DEMO-REQ-008":{"total":8,"br":3,"ps":1,"iv":4,"pending":4,"upcoming":0},"DEMO-REQ-009":{"total":9,"br":5,"ps":1,"iv":3,"pending":3,"upcoming":3},"DEMO-REQ-012":{"total":5,"br":4,"ps":1,"iv":0,"pending":5,"upcoming":0},"DEMO-REQ-013":{"total":13,"br":6,"ps":7,"iv":0,"pending":1,"upcoming":0},"DEMO-REQ-014":{"total":2,"br":0,"ps":0,"iv":2,"pending":1,"upcoming":0},"DEMO-REQ-015":{"total":4,"br":2,"ps":0,"iv":2,"pending":2,"upcoming":2},"DEMO-REQ-016":{"total":3,"br":0,"ps":0,"iv":3,"pending":0,"upcoming":3},"DEMO-REQ-017":{"total":4,"br":1,"ps":3,"iv":0,"pending":1,"upcoming":0},"DEMO-REQ-020":{"total":4,"br":1,"ps":3,"iv":0,"pending":2,"upcoming":0},"DEMO-REQ-024":{"total":1,"br":0,"ps":1,"iv":0,"pending":0,"upcoming":0},"all":{"total":84,"br":28,"ps":22,"iv":34,"pending":35,"upcoming":11}};
+window.__stageScrapedByReq = {"DEMO-REQ-001":{"br":"Sep 19, 08:36 PM","ps":"","iv":"Sep 19, 08:39 PM"},"DEMO-REQ-002":{"br":"","ps":"","iv":""},"DEMO-REQ-003":{"br":"Sep 19, 08:33 PM","ps":"Sep 19, 08:34 PM","iv":"Sep 19, 08:34 PM"},"DEMO-REQ-004":{"br":"Sep 20, 08:58 PM","ps":"Sep 20, 08:59 PM","iv":"Sep 20, 09:00 PM"},"DEMO-REQ-005":{"br":"Sep 20, 08:56 PM","ps":"Sep 20, 08:56 PM","iv":"Sep 20, 08:57 PM"},"DEMO-REQ-006":{"br":"Sep 20, 08:55 PM","ps":"","iv":"Sep 20, 08:55 PM"},"DEMO-REQ-007":{"br":"Sep 19, 09:05 PM","ps":"","iv":"Sep 19, 09:06 PM"},"DEMO-REQ-008":{"br":"Sep 20, 08:53 PM","ps":"Sep 20, 08:53 PM","iv":"Sep 20, 08:54 PM"},"DEMO-REQ-009":{"br":"Sep 19, 09:02 PM","ps":"Sep 19, 09:02 PM","iv":"Sep 19, 09:02 PM"},"DEMO-REQ-010":{"br":"","ps":"","iv":""},"DEMO-REQ-011":{"br":"","ps":"","iv":""},"DEMO-REQ-012":{"br":"Sep 19, 09:21 PM","ps":"Sep 19, 09:00 PM","iv":""},"DEMO-REQ-013":{"br":"Sep 19, 08:52 PM","ps":"Sep 19, 08:56 PM","iv":""},"DEMO-REQ-014":{"br":"","ps":"","iv":"Sep 20, 08:53 PM"},"DEMO-REQ-015":{"br":"Sep 19, 05:56 PM","ps":"","iv":"Sep 19, 05:57 PM"},"DEMO-REQ-016":{"br":"","ps":"","iv":"Sep 20, 08:52 PM"},"DEMO-REQ-017":{"br":"Sep 19, 08:42 PM","ps":"Sep 19, 08:42 PM","iv":""},"DEMO-REQ-018":{"br":"","ps":"","iv":""},"DEMO-REQ-019":{"br":"","ps":"","iv":""},"DEMO-REQ-020":{"br":"Sep 19, 08:40 PM","ps":"Sep 19, 08:41 PM","iv":""},"DEMO-REQ-021":{"br":"","ps":"","iv":""},"DEMO-REQ-022":{"br":"","ps":"","iv":""},"DEMO-REQ-023":{"br":"","ps":"","iv":""},"DEMO-REQ-024":{"br":"","ps":"Sep 19, 08:40 PM","iv":""},"DEMO-REQ-025":{"br":"","ps":"","iv":""},"all":{"br":"","ps":"","iv":""}};</script>
+      <div class="table-wrap"><table id="feedbackTable">
+        <thead><tr><th>Req ID</th><th>Position Title</th><th>Req Link</th><th>Candidate</th><th>Business Review<br><span class="muted small">incl. Quick Note</span></th><th>Phone Screen</th><th>Interview</th><th>Summary<br><span class="muted small">latest stage</span></th></tr></thead>
+        <tbody>
+<tr data-req="DEMO-REQ-001" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="rolland wong">
+            <td class="nowrap"><strong>DEMO-REQ-001</strong></td>
+            <td>Senior Hardware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Maya Lin</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Renee Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Jul 31, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Jul 09, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Jul 31, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Renee Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Ian Blake</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 14, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 13, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Neil Carter</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 18, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">3 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-001" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="benji lee">
+            <td class="nowrap"><strong>DEMO-REQ-001</strong></td>
+            <td>Senior Hardware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ethan Park</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Renee Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 06, 2026</div><div class="muted small">Quick Notes Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 04, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Ian Blake</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 26, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Renee Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 26, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Neil Carter</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 28, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">4 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-001" data-stage="Interview" data-pending="1" data-upcoming="1" data-candidate="chun keung yeung">
+            <td class="nowrap"><strong>DEMO-REQ-001</strong></td>
+            <td>Senior Hardware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Nora Chen</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Renee Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Renee Vale</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Quick Notes Form</div></li><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 04, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 10, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 03:30 PM - 04:30 PM</strong><div class="muted small">Neil Carter</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 24th 2026 12:00 PM - 01:00 PM</strong><div class="muted small">Renee Vale, Amy Hayes</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 25th 2026 01:00 PM - 02:00 PM</strong><div class="muted small">Ian Blake</div></li></ul></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-001" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="kenneth lee">
+            <td class="nowrap"><strong>DEMO-REQ-001</strong></td>
+            <td>Senior Hardware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Leo Morgan</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Renee Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 03, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 24, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 03, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Ian Blake</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 17, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Amy Hayes</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 11, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Renee Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 10, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span> / <span style="color:#b00020;font-weight:700;">3 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="mike chang">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ava Brooks</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li><li><strong>CG</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">2 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="tim ko">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Owen Lee</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li><li><strong>CG</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">2 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="peter lin">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Sofia Reed</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="joe lin">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Liam Carter</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="elsa hsiao">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ivy Stone</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="vesper liao">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Noah Kim</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 10, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Interview" data-pending="1" data-upcoming="0" data-candidate="kyle huang">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ella Hayes</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 20, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 05, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 20, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 03, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Nathan Frost</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 31, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 31, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span> / <span style="color:#b00020;font-weight:700;">4 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="allen tsai">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Mason Blake</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 05, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 05, 2026</div><div class="muted small">Business Review Feedback Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Jul 31, 2026</div><div class="muted small">Quick Notes Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 05, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 20, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 17, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 26, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 31, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 12, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">3 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Interview" data-pending="1" data-upcoming="0" data-candidate="jack yu">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Chloe Rivers</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 05, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 19, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Elena Chase</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Stella Fox</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Nathan Frost</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">4 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">2 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="yi yang shih">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Lucas Gray</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 11, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 17, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 11, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 21st 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Brian Hale, Stella Fox</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 06:00 AM - 07:00 AM</strong><div class="muted small">Elena Chase</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 03:30 PM - 04:30 PM</strong><div class="muted small">Hazel Quinn</div></li></ul><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="rex lin">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Zoe Bennett</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 11, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 21st 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Hazel Quinn</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 21st 2026 04:30 PM - 05:30 PM</strong><div class="muted small">Brian Hale, Stella Fox</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Daniel Snow</div></li></ul><ul class="mini-list"><li><strong>Elena Chase</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-003" data-stage="Interview" data-pending="1" data-upcoming="0" data-candidate="rudy yang">
+            <td class="nowrap"><strong>DEMO-REQ-003</strong></td>
+            <td>Data Center Technician</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Caleb Wright</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Quick Notes Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>CG</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Stella Fox</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">4 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="morpheus huang">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Mia Foster</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="shih hsien lin">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Evan Cole</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">Business Review form not sent</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="jia-hong liu">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Luna Scott</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Tessa Cole</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">3 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="johnny liu">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ryan Vale</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 01, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Tessa Cole</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">3 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="lee hsuanying">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Aria Lane</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Skye Turner</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 04, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="eva chen">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Miles Turner</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Skye Turner</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Tessa Cole</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">3 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-005" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="hsin-wei huang">
+            <td class="nowrap"><strong>DEMO-REQ-005</strong></td>
+            <td>Manufacturing Quality Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Nina West</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Tessa Cole</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 17, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-006" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="mark wu">
+            <td class="nowrap"><strong>DEMO-REQ-006</strong></td>
+            <td>Firmware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Kai Miller</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-006" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="lee hsuanying">
+            <td class="nowrap"><strong>DEMO-REQ-006</strong></td>
+            <td>Firmware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Aria Lane</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">Business Review form not sent</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-006" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="nash lin">
+            <td class="nowrap"><strong>DEMO-REQ-006</strong></td>
+            <td>Firmware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Felix Young</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-006" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="shih hsien lin">
+            <td class="nowrap"><strong>DEMO-REQ-006</strong></td>
+            <td>Firmware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Evan Cole</a></strong><div class="muted small">Interview</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 19, 2026</div><div class="muted small">Person Screen</div></li><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 06, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 10, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Felix Young</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 28, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">3 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-006" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="che-han cheng">
+            <td class="nowrap"><strong>DEMO-REQ-006</strong></td>
+            <td>Firmware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Dylan Shaw</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 04, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Felix Young</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 19, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-006" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="zihsuan hung">
+            <td class="nowrap"><strong>DEMO-REQ-006</strong></td>
+            <td>Firmware Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ruby Clark</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Skye Turner</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Felix Young</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 17, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span> / <span style="color:#b00020;font-weight:700;">2 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-007" data-stage="Interview" data-pending="1" data-upcoming="0" data-candidate="jeff chien">
+            <td class="nowrap"><strong>DEMO-REQ-007</strong></td>
+            <td>Supply Chain Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Henry Ford</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>GM</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 13, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>GM</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27, 2026</div><div class="muted small">Person Screen</div></li><li><strong>GM</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>YL</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>ZM</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>KK</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">2 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-007" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="ian huang">
+            <td class="nowrap"><strong>DEMO-REQ-007</strong></td>
+            <td>Supply Chain Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Iris Walker</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>GM</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 23, 2026</div><div class="muted small">Quick Notes Form</div></li><li><strong>GM</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 23, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>GM</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 31, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>KK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>ZM</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>YL</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="frank wang">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Jonah Price</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="morris chen">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Emma Bell</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="melvin chang">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Theo Grant</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 11, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="gianna tseng">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Lily Hart</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 14, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="ken chen">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Adam King</a></strong><div class="muted small">Interview</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 07, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 28, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 31, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 22, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="cl lu">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Clara Wood</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 18, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 18, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 10, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Elena Chase</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span> / <span style="color:#b00020;font-weight:700;">2 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="helen lo">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Max Flynn</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 27, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 28, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Elena Chase</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 02, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-008" data-stage="Interview" data-pending="1" data-upcoming="0" data-candidate="yi fan chang">
+            <td class="nowrap"><strong>DEMO-REQ-008</strong></td>
+            <td>Infrastructure Sourcing Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">June Ellis</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 11, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="jane dai">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Oscar Quinn</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 18, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="timmy ho">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Bella Fox</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="wai man wong">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Sam Cross</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="henry yeung">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Alice Moore</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge nohire">No Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="jordan leung">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Logan Wells</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 03, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="michael lam">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Vera Knight</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 26, 2026</div><div class="muted small">Business Review Feedback Form</div></li><li><strong>Luna Scott</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 26, 2026</div><div class="muted small">Quick Notes Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="yung san chan">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Hugo Pierce</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 07, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 23rd 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Neil Carter</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 23rd 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Luna Scott</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 24th 2026 10:30 AM - 11:30 AM</strong><div class="muted small">Renee Vale</div></li></ul></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="andrew chong">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Mila Ross</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Aug 21, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 09, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 23rd 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Luna Scott</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 28th 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Renee Vale</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 28th 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Neil Carter</div></li></ul></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-009" data-stage="Interview" data-pending="1" data-upcoming="1" data-candidate="jason chow">
+            <td class="nowrap"><strong>DEMO-REQ-009</strong></td>
+            <td>Data Center Inventory &amp; Asset Technician Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Eli Dean</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Luna Scott</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 03, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Neil Carter</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 10, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 21st 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Neil Carter</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 28th 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Renee Vale</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 28th 2026 04:00 PM - 05:00 PM</strong><div class="muted small">Luna Scott</div></li></ul></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-012" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="charles wong">
+            <td class="nowrap"><strong>DEMO-REQ-012</strong></td>
+            <td>Reliability Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Eva Brooks</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Faye Miller</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Business Review Feedback Form</div></li><li><strong>Faye Miller</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Oct 2nd 2026 11:00 AM - 11:45 AM</strong><div class="muted small">Faye Miller</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-012" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="jason loa">
+            <td class="nowrap"><strong>DEMO-REQ-012</strong></td>
+            <td>Reliability Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Finn Morris</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Faye Miller</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-012" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="simon huang">
+            <td class="nowrap"><strong>DEMO-REQ-012</strong></td>
+            <td>Reliability Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Irene Blake</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Faye Miller</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Business Review Feedback Form</div></li><li><strong>Faye Miller</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-012" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="paul huang">
+            <td class="nowrap"><strong>DEMO-REQ-012</strong></td>
+            <td>Reliability Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Aaron Stone</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Faye Miller</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-012" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="ray yu">
+            <td class="nowrap"><strong>DEMO-REQ-012</strong></td>
+            <td>Reliability Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Naomi Lane</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Faye Miller</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="chloe tsou">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Luke Hale</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="yifan wang">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Cora West</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="li-hsin, lin">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ben Archer</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="kuan-wei ho">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Rosa Miles</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="liangcheng wang">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Sean Ryder</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Review" data-pending="0" data-upcoming="0" data-candidate="ying-jiun low">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Tessa Cole</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="joan lee">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Mark River</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Lucas Gray</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="shirong liu">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Olivia Shore</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="stanley tsai">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Peter Vale</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 24th 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Luna Scott</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="daniel hsu">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Sarah Lake</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 23rd 2026 10:30 AM - 11:30 AM</strong><div class="muted small">Luna Scott</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="wade lee">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Nathan Frost</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 30th 2026 03:00 PM - 04:00 PM</strong><div class="muted small">Lucas Gray</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="tony lee">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Hazel Quinn</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>QR</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Lucas Gray</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-013" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="andrew cheng">
+            <td class="nowrap"><strong>DEMO-REQ-013</strong></td>
+            <td>Mechanical Design Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Victor Reed</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 24th 2026 10:30 AM - 11:30 AM</strong><div class="muted small">Lucas Gray</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">Business Review form not sent</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-014" data-stage="Interview" data-pending="1" data-upcoming="0" data-candidate="chin-yeh chang">
+            <td class="nowrap"><strong>DEMO-REQ-014</strong></td>
+            <td>Network Deployment Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Amelia North</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>NP</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 17, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Felix Young</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">3 No Hire</span> / <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-014" data-stage="Interview" data-pending="0" data-upcoming="0" data-candidate="vic chen">
+            <td class="nowrap"><strong>DEMO-REQ-014</strong></td>
+            <td>Network Deployment Lead</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Daniel Snow</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>NP</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Felix Young</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Daniel Snow</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 17, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 17, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">2 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-015" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="money yu">
+            <td class="nowrap"><strong>DEMO-REQ-015</strong></td>
+            <td>Security Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Violet Gray</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-015" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="daniel shih">
+            <td class="nowrap"><strong>DEMO-REQ-015</strong></td>
+            <td>Security Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Jason Field</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-015" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="cora liu">
+            <td class="nowrap"><strong>DEMO-REQ-015</strong></td>
+            <td>Security Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Elena Chase</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Daniel Snow</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 23rd 2026 08:30 AM - 09:30 AM</strong><div class="muted small">Elena Chase</div></li></ul><ul class="mini-list"><li><strong>Hazel Quinn</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-015" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="yu-chuan chen">
+            <td class="nowrap"><strong>DEMO-REQ-015</strong></td>
+            <td>Security Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Kevin Woods</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Daniel Snow</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 14, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 21st 2026 11:00 AM - 12:00 PM</strong><div class="muted small">Stella Fox</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 24th 2026 08:00 AM - 09:00 AM</strong><div class="muted small">Derek Lane</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Oct 2nd 2026 08:00 AM - 09:00 AM</strong><div class="muted small">Hazel Quinn</div></li><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Oct 2nd 2026 09:00 AM - 10:00 AM</strong><div class="muted small">Elena Chase</div></li></ul></td>
+            <td><strong>Phone Screen:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-016" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="chia-min yang">
+            <td class="nowrap"><strong>DEMO-REQ-016</strong></td>
+            <td>Business Operations Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Phoebe Grant</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 21st 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Tessa Cole</div></li></ul><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">2 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-016" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="annie tsai">
+            <td class="nowrap"><strong>DEMO-REQ-016</strong></td>
+            <td>Business Operations Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Brian Hale</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 10:00 AM - 11:00 AM</strong><div class="muted small">Tessa Cole</div></li></ul><ul class="mini-list"><li><strong>Peter Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Brian Hale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#b00020;font-weight:700;">2 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-016" data-stage="Interview" data-pending="0" data-upcoming="1" data-candidate="shen, riva">
+            <td class="nowrap"><strong>DEMO-REQ-016</strong></td>
+            <td>Business Operations Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Stella Fox</a></strong><div class="muted small">Interview</div></td>
+            <td><ul class="mini-list"><li><strong>DK</strong> <span class="badge neutral" style="background:#fff3e0;color:#8a4500;border:1px solid #f59e0b;" title="Decision not captured — open in Eightfold to verify">⚠ Check EF</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Quick Notes Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>NP</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 08, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📅 Upcoming</span> <strong>Sep 22nd 2026 02:00 PM - 03:00 PM</strong><div class="muted small">Tessa Cole</div></li></ul><ul class="mini-list"><li><strong>Brian Hale</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li><li><strong>Peter Vale</strong> <span class="badge nohire">No Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span> / <span style="color:#b00020;font-weight:700;">1 No Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-017" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="ying wa (yw) wong">
+            <td class="nowrap"><strong>DEMO-REQ-017</strong></td>
+            <td>AI Infrastructure Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Colin Drake</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-017" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="guy chan">
+            <td class="nowrap"><strong>DEMO-REQ-017</strong></td>
+            <td>AI Infrastructure Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Lucy Wells</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 22nd 2026 08:30 AM - 09:00 AM</strong><div class="muted small">Amy Hayes</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-017" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="chuen tse">
+            <td class="nowrap"><strong>DEMO-REQ-017</strong></td>
+            <td>AI Infrastructure Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Derek Lane</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 15, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 22nd 2026 02:30 PM - 03:15 PM</strong><div class="muted small">Amy Hayes</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-017" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="wing lee">
+            <td class="nowrap"><strong>DEMO-REQ-017</strong></td>
+            <td>AI Infrastructure Engineer</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Maria Stone</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Amy Hayes</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 23rd 2026 04:30 PM - 05:15 PM</strong><div class="muted small">Amy Hayes</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-020" data-stage="Review" data-pending="1" data-upcoming="0" data-candidate="taohung chen">
+            <td class="nowrap"><strong>DEMO-REQ-020</strong></td>
+            <td>Datacenter Project Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Isaac West</a></strong><div class="muted small">Business Review Pending</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">—</span></td>
+            <td><span class="muted small">Business Review form not sent</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-020" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="yun huang">
+            <td class="nowrap"><strong>DEMO-REQ-020</strong></td>
+            <td>Datacenter Project Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Ada Parker</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 21st 2026 03:00 PM - 03:30 PM</strong><div class="muted small">Stella Fox</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-020" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="hsieh-wei wu">
+            <td class="nowrap"><strong>DEMO-REQ-020</strong></td>
+            <td>Datacenter Project Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Gavin Moss</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list" style="margin:0 0 6px;padding:0 0 6px;border-bottom:1px dashed var(--cp-border);"><li><span class="badge" style="background:#e3f2fd;color:#0d47a1;border:1px solid #90caf9;">📞 Upcoming</span> <strong>Sep 23rd 2026 12:00 PM - 12:30 PM</strong><div class="muted small">Stella Fox</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Business Review:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-020" data-stage="Screen" data-pending="1" data-upcoming="0" data-candidate="alex yeh">
+            <td class="nowrap"><strong>DEMO-REQ-020</strong></td>
+            <td>Datacenter Project Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Lena Price</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 16, 2026</div><div class="muted small">Business Review Feedback Form</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>Stella Fox</strong> <span class="badge pending">Pending</span><div class="muted small"></div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><span class="muted small">—</span></td>
+            <td><strong>Phone Screen:</strong> <span style="color:var(--cp-warning);font-weight:700;">1 Pending</span></td>
+          </tr>
+<tr data-req="DEMO-REQ-024" data-stage="Screen" data-pending="0" data-upcoming="0" data-candidate="albert li">
+            <td class="nowrap"><strong>DEMO-REQ-024</strong></td>
+            <td>Technical Program Manager</td>
+            <td class="nowrap"><a href="#demo-link" target="_blank">Open</a></td>
+            <td><strong><a href="#demo-link" target="_blank">Tyler Brook</a></strong><div class="muted small">Phone Screen</div></td>
+            <td><span class="muted small">—</span></td>
+            <td><ul class="mini-list"><li><strong>NP</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Person Screen</div></li></ul></td>
+            <td><ul class="mini-list"><li><strong>NP</strong> <span class="badge hire" style="background:#e8f5e9;color:#1b5e20;">Hire</span><div class="muted small">Sep 18, 2026</div><div class="muted small">Interview Feedback Template</div></li></ul></td>
+            <td><strong>Interview:</strong> <span style="color:#1b5e20;font-weight:700;">1 Hire</span></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </section>
+</main>
+<!-- DEMO-LOCAL-ASSETS:START --><script src="demo-data.js"></script><script src="demo-email.js"></script><script src="demo-runtime.js"></script><!-- DEMO-LOCAL-ASSETS:END --></body>
+</html>

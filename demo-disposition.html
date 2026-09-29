@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Disposition Helper - Synthetic Demo</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --cp-bg: #f7f4ef;
+      --cp-bg-elevated: #fcfbf8;
+      --cp-surface: #ffffff;
+      --cp-surface-soft: #f5f5f5;
+      --cp-border: #dedede;
+      --cp-border-strong: #919191;
+      --cp-text: #242424;
+      --cp-text-muted: #5c5c5c;
+      --cp-text-soft: #6f6f6f;
+      --cp-accent: #b11f4b;
+      --cp-accent-hover: #9a1a41;
+      --cp-accent-soft: rgba(177, 31, 75, 0.08);
+      --cp-accent-fg: #ffffff;
+      --cp-success: #16a34a;
+      --cp-danger: #dc2626;
+      --cp-warning: #f59e0b;
+      --cp-link: #0078d4;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
+      --cp-overlay: rgba(255, 255, 255, 0.8);
+      --cp-panel: rgba(255, 255, 255, 0.86);
+      --cp-panel-strong: rgba(255, 255, 255, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.55);
+      --cp-highlight: rgba(177, 31, 75, 0.12);
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --cp-bg: #3d3b3a;
+      --cp-bg-elevated: #343231;
+      --cp-surface: #292929;
+      --cp-surface-soft: #2e2e2e;
+      --cp-border: #474747;
+      --cp-border-strong: #5f5f5f;
+      --cp-text: #dedede;
+      --cp-text-muted: #919191;
+      --cp-text-soft: #b0b0b0;
+      --cp-accent: #fd8ea1;
+      --cp-accent-hover: #fb7b91;
+      --cp-accent-soft: rgba(253, 142, 161, 0.14);
+      --cp-accent-fg: #1a1a1a;
+      --cp-success: #4ade80;
+      --cp-danger: #f87171;
+      --cp-warning: #fbbf24;
+      --cp-link: #4da6ff;
+      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      --cp-overlay: rgba(41, 41, 41, 0.88);
+      --cp-panel: rgba(41, 41, 41, 0.72);
+      --cp-panel-strong: rgba(41, 41, 41, 0.96);
+      --cp-sheen: rgba(255, 255, 255, 0.04);
+      --cp-highlight: rgba(253, 142, 161, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      min-width: 340px;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px;
+      background: var(--cp-bg);
+      color: var(--cp-text);
+      font: 14px/1.45 "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    a { color: var(--cp-link); }
+    .shell {
+      overflow: hidden;
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 16px;
+      box-shadow: var(--cp-shadow);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 24px;
+      background: var(--cp-panel-strong);
+      border-bottom: 1px solid var(--cp-border);
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 24px; letter-spacing: -0.02em; }
+    h2 { margin-top: 24px; font-size: 20px; }
+    h3 { font-size: 15px; }
+    .eyebrow {
+      margin-bottom: 4px;
+      color: var(--cp-text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .content { padding: 24px; }
+    .status {
+      padding: 14px 16px;
+      background: var(--cp-accent-soft);
+      border-left: 4px solid var(--cp-accent);
+    }
+    .status strong { display: block; margin-bottom: 3px; }
+    .candidate-form {
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 10px;
+    }
+    .candidate-form label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    .input-row input {
+      min-width: 0;
+      flex: 1;
+      min-height: 40px;
+      padding: 9px 11px;
+      color: var(--cp-text);
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 10px;
+      font: inherit;
+    }
+    .input-row input:focus {
+      border-color: var(--cp-accent);
+      outline: 2px solid var(--cp-accent-soft);
+    }
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .step {
+      padding: 9px 10px;
+      color: var(--cp-text-muted);
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .step.is-active {
+      color: var(--cp-accent);
+      border-color: var(--cp-accent);
+      background: var(--cp-accent-soft);
+    }
+    .step.is-complete {
+      color: var(--cp-success);
+      border-color: var(--cp-success);
+    }
+    .hidden { display: none !important; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .metric {
+      padding: 14px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 10px;
+    }
+    .metric-label { color: var(--cp-text-muted); font-size: 12px; }
+    .metric-value {
+      margin-top: 4px;
+      font-size: 21px;
+      font-weight: 700;
+    }
+    .subhead {
+      margin-top: 4px;
+      color: var(--cp-text-muted);
+    }
+    .jobs {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .job {
+      display: block;
+      padding: 15px 16px;
+      color: var(--cp-text);
+      text-decoration: none;
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 10px;
+    }
+    .job:hover, .job:focus-visible {
+      background: var(--cp-accent-soft);
+      border-color: var(--cp-accent);
+      outline: none;
+    }
+    .job-title { color: var(--cp-link); font-size: 16px; font-weight: 700; }
+    .job-meta { margin-top: 4px; color: var(--cp-text-muted); }
+    details {
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: var(--cp-surface-soft);
+      border: 1px solid var(--cp-border);
+      border-radius: 10px;
+    }
+    summary { cursor: pointer; font-weight: 700; }
+    .exclusion-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .req-pill {
+      padding: 4px 8px;
+      color: var(--cp-text-muted);
+      background: var(--cp-surface);
+      border: 1px solid var(--cp-border);
+      border-radius: 999px;
+      font: 12px Consolas, "Courier New", Courier, monospace;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    button {
+      min-height: 40px;
+      padding: 9px 14px;
+      color: var(--cp-accent-fg);
+      background: var(--cp-accent);
+      border: 1px solid var(--cp-accent);
+      border-radius: 10px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+    }
+    button:hover:not(:disabled) { background: var(--cp-accent-hover); }
+    button:disabled {
+      color: var(--cp-text-muted);
+      background: var(--cp-surface-soft);
+      border-color: var(--cp-border);
+      cursor: not-allowed;
+    }
+    .secondary {
+      color: var(--cp-text);
+      background: var(--cp-surface);
+      border-color: var(--cp-border-strong);
+    }
+    .button-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 9px 14px;
+      border: 1px solid var(--cp-border-strong);
+      border-radius: 10px;
+      color: var(--cp-text);
+      background: var(--cp-surface);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .button-link:hover { background: var(--cp-surface-soft); }
+    .secondary:hover:not(:disabled) { background: var(--cp-surface-soft); }
+    .hint {
+      margin-top: 12px;
+      color: var(--cp-text-muted);
+      font-size: 12px;
+    }
+    .toast {
+      min-height: 20px;
+      margin-top: 12px;
+      color: var(--cp-success);
+      font-weight: 700;
+    }
+    footer {
+      padding: 14px 24px;
+      color: var(--cp-text-muted);
+      background: var(--cp-surface-soft);
+      border-top: 1px solid var(--cp-border);
+      font-size: 12px;
+    }
+    @media (max-width: 560px) {
+      body { padding: 12px; }
+      header, .content, footer { padding: 18px; }
+      .summary { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-state="blank">
+  <main class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">Local recruiter companion · Synthetic demo</div>
+        <h1>Disposition Helper</h1>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="status" id="status" role="status" aria-live="polite">
+        <strong>Paste a candidate profile link to begin.</strong>
+        <span id="status-detail">The helper starts blank so it never shows a previous candidate by accident.</span>
+      </div>
+
+      <section class="candidate-form" aria-label="Candidate profile input">
+        <label for="candidate-url">Candidate profile URL</label>
+        <div class="input-row">
+          <input id="candidate-url" type="text" inputmode="url" placeholder="demo-ta-hub.html?req=…&amp;candidate=…" autocomplete="off" list="candidate-examples" aria-describedby="input-hint">
+          <button id="scan-button" type="button" disabled>Scan page</button>
+        </div>
+        <datalist id="candidate-examples"></datalist>
+        <p class="hint" id="input-hint">Paste a local demo candidate link or <a id="example-link" href="#candidate-url">use a synthetic example</a>. Scanning is simulated offline; no live Career Hub session is opened.</p>
+      </section>
+
+      <section id="workflow" class="hidden">
+        <div class="stepper" aria-label="Workflow steps">
+          <div class="step is-active" data-step="1">1. Scan page</div>
+          <div class="step" data-step="2">2. Recruiter opens disposition</div>
+          <div class="step" data-step="3">3. Insert into email</div>
+        </div>
+      </section>
+
+      <section id="analysis" class="hidden" aria-busy="false"></section>
+
+      <div id="actions" class="actions hidden">
+        <button class="secondary button-link" id="profile-link" type="button" disabled title="Open this synthetic candidate in the local TA Hub demo">Add to a Talent Pool</button>
+        <button class="secondary hidden" id="disposition-button" type="button" disabled>Open disposition</button>
+        <button class="hidden" id="copy-button" type="button" disabled>Insert into email</button>
+        <button class="secondary" id="reset-button" type="button">Reset</button>
+      </div>
+      <p id="workflow-hint" class="hint hidden">This scan reads only synthetic demo data. Reset or edit the link to cancel.</p>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </section>
+
+    <footer>Offline synthetic demo. Never submits disposition or modifies Career Hub. Sending a synthetic report through Outlook requires recipient review and explicit confirmation.</footer>
+  </main>
+
+  <script src="demo-data.js"></script>
+  <script src="demo-email.js"></script>
+  <script src="demo-disposition.js"></script>
+</body>
+</html>
