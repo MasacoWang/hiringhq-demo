@@ -1,0 +1,129 @@
+<!doctype html>
+<!--
+  HiringHQ DEMO - Feedback + Schedule single page.
+  Standalone entry for combined-feedback-schedule-dashboard.html (synthetic data only).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HiringHQ Demo — Feedback + Schedule</title>
+  <style>
+    :root {
+      --accent: #b11f4b;
+      --eyebrow: #c2185b;
+      --pink: #f48fb1;
+      --blue: #90c8f0;
+      --mint: #a5d6a7;
+      --teal: #80cbc4;
+      --text: #242424;
+      --muted: #5c5c5c;
+      --border: #dedede;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: var(--text);
+      font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .shell { display: flex; flex-direction: column; gap: 16px; padding: 20px; min-height: 100vh; }
+    .hero, .viewer {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 0 2px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.14);
+    }
+    .hero { padding: 18px 22px; border-top: 4px solid var(--accent); }
+    .hero-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+    .eyebrow {
+      margin: 0 0 6px; display: flex; gap: 14px; flex-wrap: wrap;
+      color: var(--eyebrow); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    }
+    .badge {
+      padding: 1px 10px; border-radius: 999px; border: 2px solid var(--pink);
+      color: var(--accent); text-transform: none; letter-spacing: 0;
+    }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); line-height: 1.15; }
+    .sub { margin: 8px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 980px; }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .chip {
+      --c: var(--pink);
+      border: 2px solid var(--c); border-radius: 10px; padding: 6px 12px;
+      font-size: 13px; font-weight: 700; background: #fff;
+    }
+    .chip:nth-child(2) { --c: var(--blue); }
+    .chip:nth-child(3) { --c: var(--mint); }
+    .chip:nth-child(4) { --c: var(--teal); }
+    .actions { display: flex; flex-direction: column; gap: 8px; min-width: 220px; }
+    .btn {
+      display: block; text-align: center; text-decoration: none; font-weight: 700; font-size: 14px;
+      padding: 9px 16px; border-radius: 10px; border: 2px solid var(--accent); color: var(--accent); background: #fff;
+    }
+    .btn.primary { background: var(--accent); color: #fff; }
+    .btn:hover { filter: brightness(1.05); background: color-mix(in srgb, var(--accent) 10%, #fff); }
+    .btn.primary:hover { background: var(--accent); }
+    .status { font-size: 12.5px; font-weight: 700; color: #16a34a; text-align: center; }
+    .viewer { overflow: hidden; }
+    iframe { display: block; width: 100%; height: 80vh; border: 0; }
+    .foot { color: var(--muted); font-size: 12px; text-align: center; padding-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-row">
+        <div>
+          <p class="eyebrow"><span>HiringHQ · TA Hub Dashboard</span><span class="badge">DEMO — Synthetic Data</span></p>
+          <h1>Feedback + Schedule</h1>
+          <p class="sub">
+            One row per candidate, grouped by Hiring Manager: current stage, current-stage feedback summary
+            (Hire / No Hire / Pending), the stage-aware phone-screen or interview schedule, and candidate source.
+            Filter by req, Hiring Manager, pipeline phase or candidate, and click the stat cards to drill in.
+          </p>
+          <div class="chips">
+            <span class="chip">Feedback status</span>
+            <span class="chip">Interview schedule</span>
+            <span class="chip">Pipeline stage</span>
+            <span class="chip">Candidate source</span>
+          </div>
+        </div>
+        <div class="actions">
+          <a class="btn primary" href="combined-feedback-schedule-dashboard.html" target="_blank" rel="noopener">Open full-screen view</a>
+          <a class="btn" href="ta-hub-dashboards.html#daily">Back to full HiringHQ demo</a>
+          <div class="status">● Offline demo · synthetic data only</div>
+        </div>
+      </div>
+    </header>
+
+    <main class="viewer">
+      <iframe id="dashboardFrame" title="Feedback + Schedule dashboard" src="combined-feedback-schedule-dashboard.html"></iframe>
+    </main>
+
+    <div class="foot">All names, reqs and dates are fictional demo data. No live TA Hub connection.</div>
+  </div>
+  <script>
+    (() => {
+      const frame = document.getElementById('dashboardFrame');
+      function fit() {
+        try {
+          const doc = frame.contentDocument;
+          if (!doc || !doc.body) return;
+          const h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight);
+          if (h > 0 && Math.abs(parseInt(frame.style.height || 0, 10) - h) > 2) frame.style.height = h + 'px';
+        } catch (e) {}
+      }
+      frame.addEventListener('load', () => {
+        fit();
+        try {
+          const ro = new ResizeObserver(fit);
+          ro.observe(frame.contentDocument.body);
+          ro.observe(frame.contentDocument.documentElement);
+        } catch (e) {}
+        let n = 0; const t = setInterval(() => { fit(); if (++n > 24) clearInterval(t); }, 250);
+      });
+      window.addEventListener('resize', fit);
+    })();
+  </script>
+</body>
+</html>
